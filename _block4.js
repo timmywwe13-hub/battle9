@@ -1,447 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ISLE ROYALE &mdash; Battle Royale</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root{
-  --cy:#41e0ff; --cy-dim:#1d7d94; --gold:#ffc63d; --red:#ff4b4b; --grn:#5cf07a;
-  --pur:#b76bff; --blu:#3aa0ff; --bg:#070b0f; --panel:rgba(8,14,20,.82);
-  --ui:"Segoe UI",Roboto,system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
-}
-html,body{ width:100%; height:100%; overflow:hidden; background:var(--bg); color:#e8f4fa;
-  font-family:var(--ui); user-select:none; -webkit-user-select:none; }
-canvas{ display:block; }
-#app{ position:fixed; inset:0; }
-#gameCanvas{ position:absolute; inset:0; width:100%; height:100%; }
-.hidden{ display:none !important; }
 
-/* ---------------- HUD ---------------- */
-#hud{ position:absolute; inset:0; pointer-events:none; z-index:10; }
-#hud *{ pointer-events:none; }
-#hud button{ pointer-events:auto; }
-
-#compassWrap{ position:absolute; top:6px; left:50%; transform:translateX(-50%);
-  width:600px; max-width:66vw; height:32px; overflow:hidden; opacity:.95; }
-#compass{ width:600px; height:32px; }
-
-#topLeft{ position:absolute; top:5px; left:14px; display:flex; gap:10px; align-items:flex-start; }
-.box{ background:var(--panel); border:1px solid rgba(65,224,255,.25); border-radius:8px;
-  padding:5px 12px; text-align:center; }
-.box .big{ font-size:24px; font-weight:800; line-height:1.05; letter-spacing:.5px; }
-.box label{ display:block; font-size:9px; letter-spacing:2px; color:#7fb6c9; }
-#aliveBox .big{ color:var(--cy); }
-#statsBox{ display:flex; gap:16px; }
-#statsBox .big{ font-size:19px; color:var(--gold); }
-
-#zonePanel{ position:absolute; top:46px; left:50%; transform:translateX(-50%);
-  background:var(--panel); border:1px solid rgba(65,224,255,.25); border-radius:8px;
-  padding:3px 16px; text-align:center; min-width:168px; }
-#zonePhase{ font-size:10px; letter-spacing:2px; color:#7fb6c9; }
-#zoneTimer{ font-size:18px; font-weight:800; color:#fff; line-height:1.1; }
-#zoneSub{ font-size:9px; letter-spacing:1.5px; color:var(--cy); }
-#zonePanel.danger{ border-color:rgba(255,75,75,.6); }
-#zonePanel.danger #zoneTimer{ color:var(--red); animation:pulse .7s infinite; }
-@keyframes pulse{ 50%{ opacity:.35 } }
-
-#killfeed{ position:absolute; top:6px; right:14px; width:330px; display:flex;
-  flex-direction:column; align-items:flex-end; gap:4px; }
-.kf{ background:rgba(6,10,14,.8); border-left:3px solid var(--cy); border-radius:4px;
-  padding:3px 9px; font-size:12px; white-space:nowrap; transition:opacity .5s; }
-.kf b{ color:#fff; } .kf .w{ color:var(--gold); } .kf .ar{ color:#8fa8b5; }
-.kf.mine{ border-left-color:var(--grn); background:rgba(10,30,16,.85); }
-.kf .hs{ color:var(--gold); font-weight:700; }
-#fpsBox{ position:absolute; left:14px; top:calc(100% - 22px); font-size:11px; color:#6f97a6;
-  letter-spacing:1px; display:none; }
-/* crosshair, hitmarker, feedback */
-#crosshair{ position:absolute; left:50%; top:50%; width:0; height:0; opacity:.95; }
-#crosshair .ch{ position:absolute; background:#eaffff; box-shadow:0 0 3px #000; border-radius:1px; }
-#crosshair .ch-dot{ width:2px; height:2px; left:-1px; top:-1px; background:var(--cy); }
-#crosshair .ch-t,#crosshair .ch-b{ width:2px; height:9px; left:-1px; }
-#crosshair .ch-l,#crosshair .ch-r{ height:2px; width:9px; top:-1px; }
-#crosshair.scoped .ch-l,#crosshair.scoped .ch-r,#crosshair.scoped .ch-t,
-#crosshair.scoped .ch-b,#crosshair.scoped .ch-dot{ display:none; }
-#scopeOverlay{ position:absolute; inset:0; opacity:0; transition:opacity .08s; }
-#scopeOverlay.show{ opacity:1; }
-#hitmarker{ position:absolute; left:50%; top:50%; width:28px; height:28px; margin:-14px 0 0 -14px; opacity:0; }
-#hitmarker div{ position:absolute; width:11px; height:2px; background:#fff; box-shadow:0 0 4px #000; }
-#hitmarker .h1{ top:5px; left:1px; transform:rotate(45deg); }
-#hitmarker .h2{ top:5px; right:1px; transform:rotate(-45deg); }
-#hitmarker .h3{ bottom:5px; left:1px; transform:rotate(-45deg); }
-#hitmarker .h4{ bottom:5px; right:1px; transform:rotate(45deg); }
-#hitmarker.show{ animation:hm .24s ease-out; }
-@keyframes hm{ 0%{ opacity:1; transform:scale(.55) } 100%{ opacity:0; transform:scale(1.3) } }
-#hitmarker.head div{ background:var(--gold); width:14px; }
-#hitmarker.kill div{ background:var(--red); width:16px; height:3px; }
-
-#dmgDirs{ position:absolute; left:50%; top:50%; width:0; height:0; }
-.dmgdir{ position:absolute; left:-44px; top:-186px; width:88px; height:13px;
-  background:linear-gradient(to right,rgba(255,40,40,0),rgba(255,70,70,.95),rgba(255,40,40,0));
-  border-radius:50% 50% 0 0; opacity:0; transform-origin:44px 186px; }
-.dmgdir.show{ animation:dfade 1.7s linear forwards; }
-@keyframes dfade{ 0%{ opacity:.95 } 70%{ opacity:.7 } 100%{ opacity:0 } }
-#dmgNums{ position:absolute; inset:0; }
-.dnum{ position:absolute; font-weight:800; font-size:15px; color:#fff;
-  text-shadow:0 0 4px #000,0 0 10px rgba(0,0,0,.9); transform:translate(-50%,-50%); }
-.dnum.head{ color:var(--gold); font-size:19px; }
-.dnum.kill{ color:var(--red); font-size:20px; }
-
-#pickupPrompt{ position:absolute; left:50%; top:59%; transform:translateX(-50%);
-  background:rgba(3,7,10,.75); border:1px solid rgba(65,224,255,.5); border-radius:6px;
-  padding:5px 13px; font-size:14px; opacity:0; transition:opacity .1s; }
-#pickupPrompt.show{ opacity:1; }
-#pickupPrompt b{ display:inline-block; background:var(--cy); color:#03222b; border-radius:4px;
-  padding:0 6px; margin-right:6px; font-size:12px; font-weight:800; }
-#pickupPrompt .rar{ font-weight:700; }
-
-#bottomLeft{ position:absolute; left:14px; bottom:16px; width:296px; }
-.bar{ height:13px; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.22);
-  border-radius:3px; overflow:hidden; margin-bottom:5px; position:relative; }
-.bar i{ display:block; height:100%; width:100%; transition:width .12s linear; }
-#hpBar i{ background:linear-gradient(to bottom,#6de88a,#22a04a); }
-#shBar i{ background:linear-gradient(to bottom,#8fe6ff,#1f8ec4); }
-.bar span{ position:absolute; right:6px; top:0; font-size:10px; font-weight:700; color:#fff;
-  text-shadow:0 0 3px #000,0 0 3px #000; line-height:13px; }
-#armorRow{ display:flex; gap:6px; font-size:11px; color:#9ec6d6; }
-.armorPip{ background:var(--panel); border:1px solid rgba(255,255,255,.2); border-radius:4px; padding:1px 6px; }
-.armorPip.on{ color:#fff; border-color:var(--cy); box-shadow:0 0 6px rgba(65,224,255,.4); }
-#bottomRight{ position:absolute; right:14px; bottom:16px; text-align:right; }
-#weaponName{ font-size:17px; font-weight:800; letter-spacing:.6px; }
-#weaponTier{ font-size:10px; letter-spacing:2px; text-transform:uppercase; min-height:13px; }
-#ammoLine{ font-size:29px; font-weight:800; line-height:1.05; }
-#ammoLine small{ font-size:14px; color:#9ec6d6; }
-#ammoLine.reloading small{ color:var(--gold); }
-#slotRow{ display:flex; gap:5px; justify-content:flex-end; margin-top:5px; }
-.slot{ width:62px; height:25px; background:var(--panel); border:1px solid rgba(255,255,255,.16);
-  border-radius:4px; font-size:10px; display:flex; align-items:center; justify-content:center;
-  color:#7fb6c9; overflow:hidden; padding:0 3px; }
-.slot.sel{ border-color:var(--gold); color:#fff; box-shadow:0 0 8px rgba(255,198,61,.35); }
-.slot b{ color:var(--gold); margin-right:3px; }
-/* the bar shows the 3D model of the weapon, not its name */
-.slotIcon{ height:19px; width:44px; object-fit:contain; display:block; }
-#consumRow{ display:flex; gap:6px; justify-content:flex-end; margin-top:5px; }
-.cons{ background:var(--panel); border:1px solid rgba(255,255,255,.16); border-radius:4px;
-  padding:2px 7px; font-size:11px; color:#cfe9f3; display:flex; align-items:center; gap:3px; }
-.cons b{ color:var(--cy); }
-.cons i{ font-style:normal; color:#9ec6d6; font-size:10px; }
-.consIcon{ height:17px; width:30px; object-fit:contain; display:block; }
-.cons.empty{ opacity:.32; }
-
-#minimapWrap{ position:absolute; right:14px; top:56px; width:196px; height:196px;
-  border:2px solid rgba(65,224,255,.35); border-radius:10px; overflow:hidden;
-  background:rgba(4,10,14,.7); box-shadow:0 4px 18px rgba(0,0,0,.55); }
-#minimap{ width:196px; height:196px; }
-#mmCoord{ position:absolute; bottom:0; left:0; right:0; font-size:9px; text-align:center;
-  background:rgba(0,0,0,.45); letter-spacing:1px; color:#9ec6d6; }
-
-#fullmapWrap{ position:absolute; inset:0; background:rgba(3,6,9,.88); z-index:30;
-  display:flex; align-items:center; justify-content:center; flex-direction:column; }
-#fullmap{ width:min(86vh,86vw); height:min(86vh,86vw); border:2px solid rgba(65,224,255,.4);
-  border-radius:10px; box-shadow:0 10px 50px rgba(0,0,0,.7); }
-#fullmapHint{ margin-top:10px; font-size:12px; letter-spacing:2px; color:#9ec6d6; }
-
-#healBarWrap{ position:absolute; left:50%; bottom:26%; transform:translateX(-50%);
-  width:230px; text-align:center; opacity:0; transition:opacity .15s; }
-#healBarWrap.show{ opacity:1; }
-#healBarLabel{ font-size:12px; letter-spacing:2px; margin-bottom:4px; color:var(--cy); }
-#healBarTrack{ height:9px; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.25);
-  border-radius:5px; overflow:hidden; }
-#healBarFill{ height:100%; width:0%; background:linear-gradient(to right,#8ef0ff,#2a9ec9); }
-
-#vignette,#lowHp,#flash{ position:absolute; inset:0; pointer-events:none; }
-#vignette{ background:radial-gradient(ellipse at center,rgba(0,0,0,0) 48%,rgba(0,0,0,.5) 100%); }
-#lowHp{ background:radial-gradient(ellipse at center,rgba(120,0,0,0) 32%,rgba(155,0,0,.75) 100%);
-  opacity:0; transition:opacity .35s; }
-#flash{ background:#fff; opacity:0; transition:opacity .3s; }
-#zoneWarn{ position:absolute; left:50%; top:31%; transform:translateX(-50%); font-size:25px;
-  font-weight:800; letter-spacing:4px; color:#ff6a6a; text-shadow:0 0 18px rgba(255,0,0,.7);
-  opacity:0; }
-#outsideWarn{ position:absolute; left:50%; top:37%; transform:translateX(-50%); font-size:14px;
-  font-weight:700; letter-spacing:3px; color:#ffd0d0; background:rgba(120,0,0,.5); padding:4px 14px;
-  border-radius:4px; opacity:0; }
-#zoneWarn.show,#outsideWarn.show{ opacity:1; animation:pulse .8s infinite; }
-
-#dropPanel{ position:absolute; left:50%; bottom:17%; transform:translateX(-50%); text-align:center; }
-#altitude{ font-size:27px; font-weight:800; color:#fff; text-shadow:0 0 10px #000; }
-#dropHint{ font-size:12px; letter-spacing:2px; color:var(--cy); margin-top:3px; }
-#spectatePanel{ position:absolute; left:50%; top:11%; transform:translateX(-50%);
-  background:rgba(3,7,10,.72); border:1px solid rgba(65,224,255,.4); border-radius:6px;
-  padding:6px 16px; font-size:14px; letter-spacing:1px; }
-#spectatePanel b{ color:var(--gold); }
-/* ---------------- Screens / menus ---------------- */
-.screen{ position:absolute; inset:0; z-index:40; display:flex; align-items:center;
-  justify-content:center; flex-direction:column; text-align:center;
-  background:radial-gradient(ellipse at 50% 30%,rgba(10,26,36,.85),rgba(3,6,9,.97));
-  padding:16px; overflow:auto; }
-.screen h1{ font-size:clamp(32px,7vw,70px); font-weight:900; letter-spacing:6px;
-  background:linear-gradient(to bottom,#eafcff,#41e0ff 60%,#1a6f88); -webkit-background-clip:text;
-  background-clip:text; color:transparent; }
-.screen h2{ font-size:clamp(22px,4.2vw,40px); font-weight:900; letter-spacing:4px; margin-bottom:4px; }
-.screen h2.win{ color:var(--gold); text-shadow:0 0 26px rgba(255,198,61,.6); }
-.screen h2.lose{ color:#ff6b6b; text-shadow:0 0 26px rgba(255,60,60,.5); }
-.screen p.sub{ color:#9ec6d6; font-size:12.5px; letter-spacing:3px; margin-bottom:14px; }
-.btn{ pointer-events:auto; cursor:pointer; border:1px solid rgba(65,224,255,.5);
-  background:rgba(11,32,42,.8); color:#eafcff; font-family:var(--ui); font-size:15px;
-  font-weight:700; letter-spacing:2px; padding:10px 28px; border-radius:7px; margin:4px;
-  transition:.12s; }
-.btn:hover{ background:rgba(30,90,115,.9); border-color:var(--cy); box-shadow:0 0 16px rgba(65,224,255,.35); }
-.btn.primary{ background:linear-gradient(to bottom,#1d7d94,#0d4b5c); border-color:var(--cy);
-  font-size:17px; padding:13px 44px; }
-.btn.small{ font-size:11.5px; padding:7px 15px; }
-.panelRow{ display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin:12px 0 2px; }
-.card{ background:rgba(6,14,20,.72); border:1px solid rgba(65,224,255,.2); border-radius:10px;
-  padding:13px 18px; min-width:246px; text-align:left; }
-.card h3{ font-size:10.5px; letter-spacing:3px; color:var(--cy); margin-bottom:8px; }
-.card table{ border-collapse:collapse; font-size:12.5px; }
-.card td{ padding:2px 10px 2px 0; color:#cfe9f3; }
-.card td.k{ color:#fff; font-weight:700; white-space:nowrap; }
-.statGrid{ display:flex; gap:28px; justify-content:center; margin:14px 0; flex-wrap:wrap; }
-.statGrid .v{ font-size:33px; font-weight:900; color:#fff; line-height:1.05; }
-.statGrid .l{ font-size:10px; letter-spacing:3px; color:#7fb6c9; }
-.settingRow{ display:flex; align-items:center; gap:10px; margin:8px 0; font-size:12.5px; color:#cfe9f3; }
-.settingRow label{ width:132px; text-align:right; letter-spacing:1px; }
-.settingRow input[type=range]{ width:170px; accent-color:#41e0ff; }
-.settingRow select{ background:rgba(10,26,34,.9); color:#eafcff; border:1px solid rgba(65,224,255,.4);
-  border-radius:5px; padding:5px 8px; font-family:var(--ui); font-size:12.5px; }
-.settingRow .val{ width:58px; text-align:left; color:var(--cy); font-weight:700; }
-.kv{ font-size:13px; color:#cfe9f3; margin:3px 0; }
-.kv b{ color:#fff; }
-.ribbon{ font-size:11px; letter-spacing:5px; color:#7fb6c9; }
-.hint{ font-size:11.5px; color:#7fa8b8; margin-top:12px; letter-spacing:1px; line-height:1.7; }
-#bootLoading .spin{ width:40px; height:40px; border:3px solid rgba(65,224,255,.2);
-  border-top-color:var(--cy); border-radius:50%; animation:sp 1s linear infinite; margin-bottom:16px; }
-@keyframes sp{ to{ transform:rotate(360deg) } }
-.err{ color:#ff9a9a; font-size:14px; max-width:600px; line-height:1.7; }
-.screen .cols{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
-.badge{ display:inline-block; font-size:10px; letter-spacing:2px; padding:2px 8px; border-radius:3px;
-  border:1px solid currentColor; margin-left:6px; }
-</style>
-</head>
-<body>
-<div id="app">
-  <canvas id="gameCanvas"></canvas>
-  <div id="hud" class="hidden">
-    <div id="compassWrap"><canvas id="compass" width="600" height="32"></canvas></div>
-
-    <div id="topLeft">
-      <div class="box" id="aliveBox"><div class="big" id="aliveCount">100</div><label>ALIVE</label></div>
-      <div class="box" id="statsBox">
-        <div><div class="big" id="killCount">0</div><label>KILLS</label></div>
-        <div><div class="big" id="dmgCount">0</div><label>DAMAGE</label></div>
-      </div>
-    </div>
-
-    <div id="zonePanel">
-      <div id="zonePhase">PHASE 1</div>
-      <div id="zoneTimer">0:45</div>
-      <div id="zoneSub">Zone moves in</div>
-    </div>
-
-    <div id="killfeed"></div>
-
-    <div id="crosshair">
-      <i class="ch ch-t"></i><i class="ch ch-b"></i><i class="ch ch-l"></i><i class="ch ch-r"></i>
-      <i class="ch ch-dot"></i>
-    </div>
-    <canvas id="scopeOverlay"></canvas>
-    <div id="hitmarker"><div class="h1"></div><div class="h2"></div><div class="h3"></div><div class="h4"></div></div>
-    <div id="dmgDirs"></div>
-    <div id="dmgNums"></div>
-    <div id="pickupPrompt"><b>E</b>Pick up <span class="rar" id="pickupName">Item</span></div>
-
-    <div id="vignette"></div>
-    <div id="lowHp"></div>
-    <div id="flash"></div>
-    <div id="zoneWarn">ZONE SHRINKING!</div>
-    <div id="outsideWarn">GET INSIDE THE ZONE</div>
-    <div id="healBarWrap">
-      <div id="healBarLabel">USING</div>
-      <div id="healBarTrack"><div id="healBarFill"></div></div>
-    </div>
-    <div id="dropPanel" class="hidden">
-      <div id="altitude">0 m</div>
-      <div id="dropHint">WASD STEER &nbsp;•&nbsp; SPACE DEPLOY GLIDER</div>
-    </div>
-    <div id="spectatePanel" class="hidden">SPECTATING <b id="specName">-</b>
-      <span style="opacity:.6;font-size:11px">[click: next] [ESC: menu]</span></div>
-    <div id="fpsBox">-- FPS</div>
-  </div>
-  <div id="fullmapWrap" class="hidden">
-    <canvas id="fullmap" width="900" height="900"></canvas>
-    <div id="fullmapHint">M / ESC &mdash; CLOSE MAP</div>
-  </div>
-  <div id="hudBottom" class="hidden" style="position:absolute;inset:0;pointer-events:none;z-index:10">
-    <div id="bottomLeft">
-      <div class="bar" id="hpBar"><i style="width:100%"></i><span>100</span></div>
-      <div class="bar" id="shBar"><i style="width:0%"></i><span>0</span></div>
-      <div id="armorRow">
-        <div class="armorPip" id="helmPip">HELMET &mdash;</div>
-        <div class="armorPip" id="vestPip">VEST &mdash;</div>
-      </div>
-    </div>
-    <div id="bottomRight">
-      <div id="weaponName">Unarmed</div>
-      <div id="weaponTier"></div>
-      <div id="ammoLine"><small>&mdash;</small></div>
-      <div id="slotRow"></div>
-      <div id="consumRow"></div>
-    </div>
-    <div id="minimapWrap">
-      <canvas id="minimap" width="400" height="400"></canvas>
-      <div id="mmCoord">N</div>
-    </div>
-  </div>
-  <div id="bootLoading" class="screen">
-    <div class="spin"></div>
-    <div class="ribbon">GENERATING ISLAND&hellip;</div>
-  </div>
-
-  <div id="bootError" class="screen hidden">
-    <h2 class="lose">WEBGL UNAVAILABLE</h2>
-    <p class="sub">ISLE ROYALE</p>
-    <div class="err" id="bootErrorText">This game needs WebGL 2. Please use a recent
-      Chrome, Edge or Firefox with hardware acceleration enabled, then reload the page.</div>
-  </div>
-
-  <div id="startScreen" class="screen">
-    <h1>ISLE ROYALE</h1>
-    <p class="sub">100 COMBATANTS &nbsp;&bull;&nbsp; 1 WINNER</p>
-    <div>
-      <button class="btn primary" id="btnPlay">PLAY</button>
-      <button class="btn" id="btnControls">CONTROLS</button>
-    </div>
-    <div class="cols" style="margin-top:12px">
-      <div class="card settingsHost" data-host="start"></div>
-      <div class="card">
-        <h3>MATCH FORMAT</h3>
-        <table>
-          <tr><td class="k">Combatants</td><td id="fmtCombatants">100</td></tr>
-          <tr><td class="k">Zone phases</td><td id="fmtPhases">7</td></tr>
-          <tr><td class="k">Weapons</td><td>8 (each with ammo type)</td></tr>
-          <tr><td class="k">Loot</td><td>Guns, ammo, heals, shields, armour, grenades</td></tr>
-          <tr><td class="k">Mode</td><td>Solo &mdash; every bot is hostile</td></tr>
-        </table>
-      </div>
-    </div>
-    <div class="hint">
-      Click to lock mouse &bull; ESC pauses &bull; Audio starts after your first click
-    </div>
-  </div>
-
-  <div id="controlsScreen" class="screen hidden">
-    <h2>CONTROLS</h2>
-    <div class="cols">
-      <div class="card">
-        <h3>MOVEMENT</h3>
-        <table>
-          <tr><td class="k">W A S D</td><td>Move</td></tr>
-          <tr><td class="k">Shift</td><td>Sprint (stamina)</td></tr>
-          <tr><td class="k">Space</td><td>Jump / deploy glider</td></tr>
-          <tr><td class="k">C / Ctrl</td><td>Crouch</td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <h3>COMBAT</h3>
-        <table>
-          <tr><td class="k">LMB</td><td>Fire (&amp; hold for autos)</td></tr>
-          <tr><td class="k">RMB</td><td>Aim down sights</td></tr>
-          <tr><td class="k">R</td><td>Reload</td></tr>
-          <tr><td class="k">1 &hellip; 5</td><td>Weapon slots (wheel cycles)</td></tr>
-          <tr><td class="k">G</td><td>Throw frag grenade</td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <h3>ITEMS &amp; INTERFACE</h3>
-        <table>
-          <tr><td class="k">E / F</td><td>Pick up loot</td></tr>
-          <tr><td class="k">6 7 8</td><td>Bandage / Medkit / Shield potion</td></tr>
-          <tr><td class="k">M</td><td>Fullscreen map</td></tr>
-          <tr><td class="k">Tab</td><td>Scoreboard + inventory</td></tr>
-          <tr><td class="k">F1</td><td>FPS &amp; network stats</td></tr>
-          <tr><td class="k">ESC</td><td>Pause / release mouse</td></tr>
-        </table>
-      </div>
-    </div>
-    <button class="btn" id="btnControlsBack" style="margin-top:14px">BACK</button>
-  </div>
-
-  <div id="pauseScreen" class="screen hidden">
-    <h2>PAUSED</h2>
-    <p class="sub" id="pauseSub">MATCH IN PROGRESS</p>
-    <div class="cols">
-      <div class="card settingsHost" data-host="pause"></div>
-      <div class="card">
-        <h3>MATCH</h3>
-        <div class="kv" id="pauseStats"></div>
-      </div>
-    </div>
-    <div style="margin-top:12px">
-      <button class="btn primary" id="btnResume">RESUME</button>
-      <button class="btn" id="btnRestart2">RESTART MATCH</button>
-      <button class="btn small" id="btnQuit">QUIT TO MENU</button>
-    </div>
-  </div>
-
-  <div id="deathScreen" class="screen hidden">
-    <h2 class="lose" id="deathTitle">YOU WERE ELIMINATED</h2>
-    <p class="sub" id="deathPlacement">#12 OF 100</p>
-    <div class="kv" id="deathKiller"></div>
-    <div class="statGrid">
-      <div><div class="v" id="dKills">0</div><div class="l">KILLS</div></div>
-      <div><div class="v" id="dDamage">0</div><div class="l">DAMAGE</div></div>
-      <div><div class="v" id="dTime">0:00</div><div class="l">SURVIVED</div></div>
-      <div><div class="v" id="dAlive">0</div><div class="l">LEFT ALIVE</div></div>
-    </div>
-    <div>
-      <button class="btn primary" id="btnPlayAgain">PLAY AGAIN</button>
-      <button class="btn" id="btnSpectate">SPECTATE</button>
-      <button class="btn small" id="btnQuit2">MAIN MENU</button>
-    </div>
-    <div class="hint">Spectating shows the rest of the match; you can leave any time with ESC.</div>
-  </div>
-
-  <div id="victoryScreen" class="screen hidden">
-    <h2 class="win">&#127942; VICTORY ROYALE</h2>
-    <p class="sub" id="victorySub">#1 OF 100 &mdash; LAST ONE STANDING</p>
-    <div class="statGrid">
-      <div><div class="v" id="vKills">0</div><div class="l">KILLS</div></div>
-      <div><div class="v" id="vDamage">0</div><div class="l">DAMAGE</div></div>
-      <div><div class="v" id="vTime">0:00</div><div class="l">SURVIVED</div></div>
-      <div><div class="v" id="vAccuracy">0%</div><div class="l">ACCURACY</div></div>
-    </div>
-    <div>
-      <button class="btn primary" id="btnPlayAgain2">PLAY AGAIN</button>
-      <button class="btn small" id="btnQuit3">MAIN MENU</button>
-    </div>
-  </div>
-
-  <div id="scoreboard" class="screen hidden">
-    <h2>SCOREBOARD</h2>
-    <p class="sub" id="sbSub"></p>
-    <div class="card" style="min-width:420px;max-height:70vh;overflow:auto">
-      <table id="sbTable" style="width:100%"></table>
-    </div>
-    <button class="btn small" id="btnSbClose" style="margin-top:12px">CLOSE (TAB)</button>
-  </div>
-</div>
-<script>
-/* three.js still ships its UMD bundle but logs an informational "deprecated with r150+"
-   notice on load. Silence only that single line so the console stays clean; the UMD
-   build itself is fully functional and is what makes file:// loading work. */
-(function () {
-  var w = console.warn;
-  console.warn = function (m) {
-    if (typeof m === 'string' && m.indexOf('are deprecated with r150+') !== -1) return;
-    return w.apply(console, arguments);
-  };
-})();
-</script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script>if (!window.THREE) document.write('<script src="https://unpkg.com/three@0.160.0/build/three.min.js"><\/script>');</script>
-<script>if (!window.THREE) document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"><\/script>');</script>
-<script>
 /* =====================================================================
    ISLE ROYALE - a complete single-file battle royale.
    Section map, in file order (all tunables live in CONFIG):
@@ -523,9 +80,6 @@ const CONFIG = {
   BANDAGE_HEAL: 25, BANDAGE_TIME: 2.4,
   SHIELD_POTION: 50, SHIELD_TIME: 3.4,
   MAX_MEDKITS: 5, MAX_BANDAGES: 8, MAX_SHIELD_POTIONS: 4, MAX_GRENADES: 5,
-  /* shield bubble drawn around the character while you carry shield */
-  SHIELD_BUBBLE_R: 0.95,
-  SHIELD_BUBBLE_ALPHA: 0.3,
   // damage reduction applied to bullets (NOT to zone damage) per armour tier
   ARMOR_REDUCTION: [0, 0.12, 0.25, 0.35],
 
@@ -540,9 +94,6 @@ const CONFIG = {
   BOT_SPEED_WALK: 3.4,
   BOT_SPEED_RUN: 6.4,
   BOT_HEAL_DELAY: 2.2,
-  BOT_ACCURACY: 0.5,        // global multiplier on every bot's hit chance.
-                            // 1.0 = as lethal as the weapon stats allow; lower
-                            // means bots miss more and the player lives longer.
 
   /* ------------------------- GRENADE ------------------------- */
   GRENADE_FUSE: 3.0,
@@ -2367,12 +1918,13 @@ const Projectiles = (function () {
 
 /* =====================================================================
    LOOT - ground items (instanced, one draw call per shape), pickup
-   prompts, death drops and supply crates.
+   prompts, world labels, death drops and supply crates.
    ===================================================================== */
 const Loot = (function () {
   const CAP = 110;                       // instances per shape
   const meshes = {};                     // shapeKey -> {mesh, free[]}
   const items = [];                      // live ground items
+  const labelPool = [];
   const crates = [], crateFree = [], crateMeshes = [];
   const _m = new THREE.Matrix4();
   const _q = new THREE.Quaternion();
@@ -2431,6 +1983,14 @@ const Loot = (function () {
     init(scene) {
       for (let i = 0; i < WEAPON_IDS.length; i++) this.ensureMesh(scene, WEAPON_IDS[i]);
       ['ammo', 'bandage', 'medkit', 'shield', 'helmet', 'vest', 'nade'].forEach(k => this.ensureMesh(scene, k));
+      const host = document.getElementById('lootLabels');
+      for (let i = 0; i < 16; i++) {
+        const el = document.createElement('div');
+        el.className = 'llab';
+        el.style.display = 'none';
+        host.appendChild(el);
+        labelPool.push(el);
+      }
     },
     ensureMesh(scene, key) {
       if (meshes[key]) return meshes[key];
@@ -2472,9 +2032,7 @@ const Loot = (function () {
         item: item, key: key, idx: idx, mesh: sd.mesh, live: true,
         x: x, y: y, z: z, baseY: y, phase: Math.random() * 6.28,
         rotY: Math.random() * 6.28,
-        /* with no floating name tag the model *is* the identifier, so items sit
-           a bit larger and float a touch higher where they are easy to read */
-        scale: (w ? 1 + (w.len - 0.44) * 0.35 : 1) * 1.55
+        scale: w ? 1 + (w.len - 0.44) * 0.35 : 1
       };
       it.info = Loot.info(item);
       _eu.set(0, it.rotY, 0);
@@ -2502,9 +2060,6 @@ const Loot = (function () {
     },
     get count() { return items.length; },
     /* ---------- display info: name, rarity tier, colour ---------- */
-    /* the merged geometry behind a ground item shape - the HUD bakes its item
-       icons from these so a bar picture always matches the world model */
-    shapeFor(key) { return shapeFor(key); },
     info(item) {
       if (!item) return null;               // nothing under the crosshair
       if (item.kind === 'weapon') {
@@ -2607,6 +2162,7 @@ const Loot = (function () {
       const cam = CAM.pos, camDir = CAM.dir;
       aimed = null;
       let bestDot = 0.55, bestDist = 99;
+      let labelIdx = 0;
       const rangeSq = CONFIG.INTERACT_RANGE * CONFIG.INTERACT_RANGE;
       /* Reach is measured from the *player*, not the camera: in third person the
          camera sits metres behind, so a camera-relative check would make items in
@@ -2631,10 +2187,25 @@ const Loot = (function () {
           it.mesh.setMatrixAt(it.idx, _m);
           it.mesh.instanceMatrix.needsUpdate = true;
         }
+        if (d2 < 225 && labelIdx < labelPool.length) {
+          /* within 15 m: floating name tag coloured by rarity */
+          const dist = Math.sqrt(d2);
+          if ((dx * camDir.x + dy * camDir.y + dz * camDir.z) / Math.max(0.001, dist) > 0.25) {
+            const el = labelPool[labelIdx++];
+            it.labelEl = el;
+            _v.set(it.x, it.y + 0.5, it.z);
+            const p = _v.project(CAM.camera);
+            if (p.z < 1) {
+              el.style.display = 'block';
+              el.textContent = it.info.label;
+              el.style.color = it.info.color;
+              el.style.left = ((p.x * 0.5 + 0.5) * window.innerWidth).toFixed(0) + 'px';
+              el.style.top = ((-p.y * 0.5 + 0.5) * window.innerHeight).toFixed(0) + 'px';
+            } else el.style.display = 'none';
+          }
+        }
         /* what the crosshair is on: direction from the camera, reach from the
-           player, so third person can still pick up what it is standing next to.
-           Ground items are identified by their 3D model, so there is no floating
-           name tag - only the HUD prompt names what you are about to take. */
+           player, so third person can still pick up what it is standing next to */
         const dist = Math.sqrt(d2) || 0.001;
         const dot = (dx * camDir.x + dy * camDir.y + dz * camDir.z) / dist;
         const rx = it.x - px, ry = it.y - py, rz = it.z - pz;
@@ -2642,6 +2213,9 @@ const Loot = (function () {
           bestDot = dot; bestDist = dist; aimed = it;
         }
       }
+      for (let i = labelIdx; i < labelPool.length; i++) labelPool[i].style.display = 'none';
+      for (let i = 0; i < labelPool.length; i++) labelPool[i].classList.remove('hot');
+      if (aimed && aimed.labelEl) aimed.labelEl.classList.add('hot');
       UI.setPickupPrompt(aimed);
       /* walk over ammo you can actually use and it is picked up silently */
       for (let i = items.length - 1; i >= 0; i--) {
@@ -2745,6 +2319,7 @@ const Loot = (function () {
     },
     clear() {
       while (items.length) this.remove(items[0]);
+      for (let i = 0; i < labelPool.length; i++) labelPool[i].style.display = 'none';
       aimed = null;
       for (let i = 0; i < crates.length; i++) {
         crates[i].mesh.visible = false;
@@ -3324,13 +2899,11 @@ const Bots = {
     const mz = b.pos.z - Math.cos(b.yaw) * 0.65;
     const my = b.pos.y + (b.crouch ? 1.05 : 1.3);
     /* aim quality: skill, distance, whether the shooter is moving, crouch bonus.
-       CONFIG.BOT_ACCURACY scales the lot so bot lethality is one tunable knob,
-       and the cap keeps even the best bot human - they miss a lot at range. */
+       The cap keeps even the best bots human - they miss a lot at range. */
     const base = 0.18 + b.skill * 0.34;
     const distMul = clamp(1 - dist / (w.falloffEnd * 1.15), 0.10, 1);
     const movePenalty = (b.vel.x * b.vel.x + b.vel.z * b.vel.z) > 4 ? 0.78 : 1;
-    const chance = clamp(base * (0.12 + distMul * 0.88) * movePenalty * (b.crouch ? 1.15 : 1) *
-                         CONFIG.BOT_ACCURACY, 0.02, 0.3);
+    const chance = clamp(base * (0.12 + distMul * 0.88) * movePenalty * (b.crouch ? 1.15 : 1), 0.02, 0.5);
     const hit = RNG.chance(chance);
     const isHead = hit && RNG.chance(0.05 + b.skill * 0.2);
     let ex, ey, ez;
@@ -4394,62 +3967,6 @@ const Player = {
 };
 
 /* =====================================================================
-   ITEM ICONS - the HUD item bars show the actual 3D model of each weapon and
-   consumable rather than its name. Every icon is baked once at load with a
-   throwaway offscreen WebGL renderer and cached as a data URL, so the bars cost
-   nothing per frame and the pictures always match the world models.
-   ===================================================================== */
-const ItemIcons = (function () {
-  const cache = {};
-  const KEYS = ['pistol', 'shotgun', 'smg', 'burst', 'ar', 'lmg', 'sniper', 'launcher',
-                'ammo', 'bandage', 'medkit', 'shield', 'helmet', 'vest', 'nade'];
-  function bake() {
-    let renderer = null;
-    try {
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
-    } catch (e) {
-      return;                              // no second GL context: bars fall back to names
-    }
-    const W = 192, H = 108;
-    renderer.setSize(W, H, false);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    const scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x46545e, 2.1));
-    const key = new THREE.DirectionalLight(0xffffff, 1.7);
-    key.position.set(3, 5, 4);
-    scene.add(key);
-    const cam = new THREE.PerspectiveCamera(26, W / H, 0.05, 40);
-    cam.position.set(2.3, 1.35, 0.45);
-    cam.lookAt(0, 0, 0);
-    for (let i = 0; i < KEYS.length; i++) {
-      const k = KEYS[i];
-      const w = CONFIG.WEAPONS[k];
-      const mesh = new THREE.Mesh(Loot.shapeFor(k),
-        new THREE.MeshLambertMaterial({ color: w ? CONFIG.RARITY_COLORS[w.tier] : 0xd8e2e8 }));
-      /* the shapes are modelled down +Z: turn them broadside into a 3/4 view */
-      mesh.rotation.set(0.1, Math.PI / 2, 0);
-      const box = new THREE.Box3().setFromObject(mesh);
-      const size = box.getSize(new THREE.Vector3());
-      const longest = Math.max(size.x, size.y, size.z) || 1;
-      mesh.scale.setScalar(0.92 / longest);
-      scene.add(mesh);
-      renderer.render(scene, cam);
-      cache[k] = renderer.domElement.toDataURL('image/png');
-      scene.remove(mesh);
-      mesh.geometry.dispose();
-      mesh.material.dispose();
-    }
-    renderer.dispose();
-    if (renderer.forceContextLoss) renderer.forceContextLoss();
-  }
-  return {
-    bake: bake,
-    /* null when icons are unavailable - callers fall back to text */
-    get(key) { return (key && cache[key]) || null; }
-  };
-})();
-
-/* =====================================================================
    PLAYER MODEL - the third-person character. A low-poly humanoid built from
    primitives (capsule torso, sphere head, box arms/legs), the weapon it is
    holding, a parachute while gliding, and a simple walk cycle / crouch squash
@@ -4459,7 +3976,7 @@ const ItemIcons = (function () {
    ===================================================================== */
 const PlayerView = (function () {
   const geoCache = {};
-  let group = null, gun = null, chute = null, shieldBubble = null;
+  let group = null, gun = null, chute = null;
   let torso = null, head = null, armL = null, armR = null, legL = null, legR = null;
   const tint = new THREE.Color();
   let walkPhase = 0, kick = 0, lean = 0;
@@ -4530,21 +4047,8 @@ const PlayerView = (function () {
       chute.position.set(0, 3.3, 0);
       chute.visible = false;
 
-      /* shield bubble: a translucent shell that shows at a glance how much
-         shield you are carrying, and flashes when it soaks a hit */
-      shieldBubble = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12),
-        new THREE.MeshLambertMaterial({ color: 0x6ee4ff, transparent: true, opacity: 0.3,
-                                        depthWrite: false }));
-      shieldBubble.position.set(0, 0.85, 0);
-      shieldBubble.visible = false;
-      shieldBubble.renderOrder = 3;
-
-      group.add(torso, head, trim, armL, armR, legL, legR, gun, chute, shieldBubble);
-      group.traverse(function (o) {
-        if (!o.isMesh) return;
-        o.frustumCulled = false;
-        o.castShadow = (o !== shieldBubble) && cast;   // the bubble must not shadow
-      });
+      group.add(torso, head, trim, armL, armR, legL, legR, gun, chute);
+      group.traverse(function (o) { if (o.isMesh) { o.castShadow = cast; o.frustumCulled = false; } });
       group.visible = false;
       scene.add(group);
     },
@@ -4609,24 +4113,6 @@ const PlayerView = (function () {
       /* aiming raises the whole upper body slightly */
       if (torso) torso.position.y = 0.70 + player.adsT * 0.03;
       if (head) head.position.y = 1.34 + player.adsT * 0.03;
-
-      /* shield bubble: size and brightness follow the shield you are carrying,
-         and it flashes for a moment after absorbing a hit */
-      if (shieldBubble) {
-        const frac = clamp(player.shield / CONFIG.MAX_SHIELD, 0, 1);
-        shieldBubble.visible = frac > 0.002 && !player.airborne;
-        if (shieldBubble.visible) {
-          const pulse = 1 + Math.sin(Game.time * 2.1) * 0.015;
-          const rad = CONFIG.SHIELD_BUBBLE_R * (0.74 + frac * 0.26) * pulse;
-          shieldBubble.scale.set(rad, rad * 1.03, rad);
-          const since = Game.time - player.lastDamageTime;
-          const flash = since >= 0 && since < 0.35 ? (1 - since / 0.35) : 0;
-          /* fade it down while aiming so the shell never tints the sight picture */
-          const aimFade = 1 - player.adsT * 0.8;
-          shieldBubble.material.opacity =
-            (CONFIG.SHIELD_BUBBLE_ALPHA * (0.4 + frac * 0.6) + flash * 0.35) * aimFade;
-        }
-      }
     }
   };
 })();
@@ -4777,16 +4263,6 @@ const UI = (function () {
   let lastAlive = -1, lastKills = -1, lastDmg = -1, lastPhase = -1;
   const crossLines = {};
 
-  /* one consumable cell: key hint + the item's 3D model + the count (no name) */
-  function consCell(key, kind, count) {
-    const src = ItemIcons.get(kind);
-    const pic = src
-      ? '<img class="consIcon" src="' + src + '" alt="' + kind + '" title="' + kind + '">'
-      : '<span>' + kind.toUpperCase() + '</span>';
-    return '<div class="cons' + (count ? '' : ' empty') + '"><b>' + key + '</b>' + pic +
-           '<i>x' + count + '</i></div>';
-  }
-
   const api = {
     init() {
       const ids = ['hud', 'hudBottom', 'aliveCount', 'killCount', 'dmgCount', 'zonePhase',
@@ -4814,9 +4290,7 @@ const UI = (function () {
       for (let i = 0; i < 5; i++) {
         const d = document.createElement('div');
         d.className = 'slot';
-        /* the bar shows the weapon's 3D model; the span is the text fallback */
-        d.innerHTML = '<b>' + (i + 1) + '</b><img class="slotIcon" alt=""><span></span>';
-        d.querySelector('img').style.display = 'none';
+        d.innerHTML = '<b>' + (i + 1) + '</b><span>-</span>';
         el.slotRow.appendChild(d);
       }
       el.slots = Array.prototype.slice.call(el.slotRow.children);
@@ -4923,36 +4397,19 @@ const UI = (function () {
         const s = Player.weapons[i], node = el.slots[i];
         node.className = 'slot' + (i === Player.curSlot ? ' sel' : '');
         const nameSpan = node.querySelector('span');
-        const icon = node.querySelector('img');
         if (s) {
-          const w = CONFIG.WEAPONS[s.id];
-          const src = ItemIcons.get(s.id);
-          node.style.borderColor = CONFIG.RARITY_HEX[w.tier];
-          if (src) {                            // 3D model, no name in the bar
-            icon.src = src;
-            icon.alt = w.name;
-            icon.style.display = 'block';
-            nameSpan.style.display = 'none';
-          } else {
-            icon.style.display = 'none';
-            nameSpan.style.display = 'inline';
-            nameSpan.textContent = w.name.split(' ')[0];
-            nameSpan.style.color = CONFIG.RARITY_HEX[w.tier];
-          }
+          nameSpan.textContent = CONFIG.WEAPONS[s.id].name.split(' ')[0];
+          nameSpan.style.color = CONFIG.RARITY_HEX[CONFIG.WEAPONS[s.id].tier];
         } else {
-          node.style.borderColor = '';
-          icon.style.display = 'none';
-          icon.removeAttribute('src');
-          nameSpan.style.display = 'inline';
           nameSpan.textContent = '-';
           nameSpan.style.color = '#7fb6c9';
         }
       }
       el.consumRow.innerHTML =
-        consCell('6', 'bandage', Player.inv.bandage) +
-        consCell('7', 'medkit', Player.inv.medkit) +
-        consCell('8', 'shield', Player.inv.shield) +
-        consCell('G', 'nade', Player.inv.nade);
+        '<div class="cons' + (Player.inv.bandage ? '' : ' empty') + '"><b>6</b> BANDAGE x' + Player.inv.bandage + '</div>' +
+        '<div class="cons' + (Player.inv.medkit ? '' : ' empty') + '"><b>7</b> MEDKIT x' + Player.inv.medkit + '</div>' +
+        '<div class="cons' + (Player.inv.shield ? '' : ' empty') + '"><b>8</b> SHIELD x' + Player.inv.shield + '</div>' +
+        '<div class="cons' + (Player.inv.nade ? '' : ' empty') + '"><b>G</b> NADE x' + Player.inv.nade + '</div>';
 
       /* counters */
       if (App.aliveCount !== lastAlive) { el.aliveCount.textContent = App.aliveCount; lastAlive = App.aliveCount; }
@@ -5510,7 +4967,6 @@ const App = {
     PlayerView.init(this.scene);
     Input.init(this.canvas);
     Loot.init(this.scene);
-    ItemIcons.bake();
     Loot.initCrates(this.scene);
     Projectiles.init(this.scene);
     /* one extra slot of headroom so a full 100-bot match always fits */
@@ -6047,6 +5503,3 @@ function checkWin() {
 })();
 
 
-</script>
-</body>
-</html>
