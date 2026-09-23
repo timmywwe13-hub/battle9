@@ -1,0 +1,15 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  match state PLAYING
+PASS  the play test got into a live match   [PLAYING]
+  shot 01-idle.png (255 KB)
+  shot 01-idle-front.png (230 KB)
+  01-idle axes {"moveX":0,"moveZ":0,"sprint":false,"crouch":false} -> {"speed":0,"weight":0,"run":0,"phase":0,"rate":0.55,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 02-walk.png (253 KB)
+  shot 02-walk-front.png (238 KB)
+  02-walk axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":false} -> {"speed":5.7,"weight":1,"run":0,"phase":0.927,"rate":1.36,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 03-sprint.png (260 KB)
+  shot 03-sprint-front.png (239 KB)
+  03-sprint axes {"moveX":0,"moveZ":1,"sprint":true,"crouch":false} -> {"speed":8.6,"weight":1,"run":1,"phase":0.355,"rate":1.9,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 04-crouch-walk.png (254 KB)
+  shot 04-crouch-walk-front.png (224 KB)
+  04-crouch-walk axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":true} -> {"speed":2.8,"weight":0.23,"run":0,"phase":0.264,"rate":0.67,"camReach":3.6,"crouch":true,"air":false,"armed":false,"alive":true,"hp":100}

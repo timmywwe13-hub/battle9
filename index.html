@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- maximum-scale/user-scalable keep a phone from pinch-zooming the play field
+     mid-firefight; the touch layer adds touch-action:none on the canvas too -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>ISLE ROYALE &mdash; Battle Royale</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -144,6 +146,10 @@ canvas{ display:block; }
 
 #healBarWrap{ position:absolute; left:50%; bottom:26%; transform:translateX(-50%);
   width:230px; text-align:center; opacity:0; transition:opacity .15s; }
+/* the toast lane (transient "picked up X" lines) - built in JS, positioned here
+   so the touch layout can move it without fighting an inline style */
+#toastLane{ position:absolute; left:50%; bottom:24%; transform:translateX(-50%);
+  text-align:center; display:flex; flex-direction:column; gap:4px; align-items:center; }
 #healBarWrap.show{ opacity:1; }
 #healBarLabel{ font-size:12px; letter-spacing:2px; margin-bottom:4px; color:var(--cy); }
 #healBarTrack{ height:9px; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.25);
@@ -166,6 +172,49 @@ canvas{ display:block; }
 #dropPanel{ position:absolute; left:50%; bottom:17%; transform:translateX(-50%); text-align:center; }
 #altitude{ font-size:27px; font-weight:800; color:#fff; text-shadow:0 0 10px #000; }
 #dropHint{ font-size:12px; letter-spacing:2px; color:var(--cy); margin-top:3px; }
+#dropMapName{ font-size:15px; font-weight:900; letter-spacing:5px; color:#ffd76a;
+  text-shadow:0 0 12px rgba(255,180,0,.55), 0 2px 8px #000; margin-bottom:6px; }
+/* ---- map rotation timer (start menu) ---- */
+#mapRotLine{ position:relative; overflow:hidden; margin:12px auto 0;
+  flex:0 0 auto;                    /* never squash the timer on a short screen */
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:6px 18px; max-width:min(800px,94vw); padding:10px 22px 16px;
+  background:linear-gradient(180deg,rgba(7,22,31,.78),rgba(3,9,14,.62));
+  border:1px solid rgba(65,224,255,.3); border-radius:10px;
+  box-shadow:0 8px 26px rgba(0,0,0,.45), inset 0 0 26px rgba(65,224,255,.06);
+  font-size:11px; font-weight:700; letter-spacing:2px; line-height:1.5;
+  color:rgba(210,235,255,.85); text-shadow:0 1px 6px rgba(0,20,50,.6); }
+#mapRotLine b{ color:#ffd76a; letter-spacing:3px; }
+#mapRotLine .rotTag{ font-size:9px; font-weight:800; letter-spacing:4px;
+  color:#04121a; background:var(--cy); border-radius:3px; padding:3px 7px 3px 9px;
+  text-shadow:none; box-shadow:0 0 14px rgba(65,224,255,.45); }
+#mapRotLine .rotNow{ color:rgba(210,235,255,.9); }
+#mapRotLine .rotClockCol{ display:flex; align-items:baseline; gap:7px; }
+#mapRotLine .rotWord{ font-size:10px; letter-spacing:2px; color:rgba(210,235,255,.62); }
+#mapRotLine .rotTip{ flex:1 0 100%; font-size:9px; letter-spacing:3px;
+  color:rgba(210,235,255,.45); }
+#mapRotClock{ font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:26px; font-weight:900; letter-spacing:1px; line-height:1;
+  color:#fff; font-variant-numeric:tabular-nums;
+  text-shadow:0 0 16px rgba(65,224,255,.6); }
+#mapRotLine .rotBarWrap{ position:absolute; left:0; right:0; bottom:0; height:4px;
+  background:rgba(65,224,255,.14); }
+#mapRotBar{ display:block; height:100%; width:0%;
+  background:linear-gradient(90deg,var(--cy-dim),var(--cy),#ffd76a);
+  box-shadow:0 0 12px rgba(65,224,255,.7); transition:width .9s linear; }
+/* final minute of a map: count the flip down in red */
+#mapRotLine.soon{ border-color:rgba(255,75,75,.6); }
+#mapRotLine.soon #mapRotClock{ color:var(--red); animation:pulse .8s infinite; }
+#mapRotLine.soon #mapRotBar{ background:linear-gradient(90deg,var(--gold),var(--red)); }
+/* the instant a slot rolls over, flash the card so the new island is noticed */
+#mapRotLine.flip{ animation:rotflip .6s ease-out 4 alternate; }
+@keyframes rotflip{ from{ border-color:rgba(255,198,61,.95);
+  box-shadow:0 0 32px rgba(255,198,61,.55); } }
+/* with the settings panel unfolded the menu is tight: the timer gives up its
+   hint line and padding (the countdown itself always stays) so the panel still
+   fits without a scrollbar - but it is never squashed flat */
+#startScreen.metaOpen #mapRotLine{ padding:6px 18px 12px; gap:3px 14px; }
+#startScreen.metaOpen #mapRotLine .rotTip{ display:none; }
 #spectatePanel{ position:absolute; left:50%; top:11%; transform:translateX(-50%);
   background:rgba(3,7,10,.72); border:1px solid rgba(65,224,255,.4); border-radius:6px;
   padding:6px 16px; font-size:14px; letter-spacing:1px; }
@@ -217,6 +266,205 @@ canvas{ display:block; }
 .screen .cols{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
 .badge{ display:inline-block; font-size:10px; letter-spacing:2px; padding:2px 8px; border-radius:3px;
   border:1px solid currentColor; margin-left:6px; }
+
+/* ---------------- Title screen: the game-mode shelf ----------------
+   Three poster tiles over a bright diagonal sky, the way the reference art
+   does it: the selected tile lifts and takes a white ring, the caption bar
+   sits at the very bottom (signed-in on the left, logo on the right) and the
+   settings / match-format cards stay one row below the shelf. */
+#startScreen{ justify-content:flex-start; border:none; padding:12px 16px 52px;
+  background:linear-gradient(168deg,#2f92ea 0%,#41aaf4 28%,#1f74d2 64%,#0a469b 100%); }
+#startScreen::before{ content:''; position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.15) 0 17%,rgba(255,255,255,0) 17.2% 100%),
+    linear-gradient(115deg,rgba(255,255,255,.09) 42% 57%,rgba(255,255,255,0) 57.2% 100%),
+    linear-gradient(295deg,rgba(255,255,255,.12) 0 15%,rgba(255,255,255,0) 15.2% 100%),
+    radial-gradient(ellipse at 50% 6%,rgba(255,255,255,.28),rgba(255,255,255,0) 62%); }
+.modeTop{ position:relative; width:100%; max-width:1180px; display:flex; align-items:center;
+  justify-content:space-between; gap:10px; }
+.modeBrand{ font-size:15px; font-weight:900; letter-spacing:6px; color:#fff;
+  text-shadow:0 2px 12px rgba(0,20,50,.55); }
+.modeTopBtns{ display:flex; gap:8px; }
+.modeTopBtns .btn{ background:rgba(6,32,64,.55); border-color:rgba(255,255,255,.45); }
+.modeTopBtns .btn:hover{ background:rgba(12,60,110,.85); border-color:#fff; }
+.modeRow{ position:relative; display:flex; justify-content:center; align-items:center;
+  gap:clamp(8px,1.5vw,20px); width:100%; margin:8px 0 6px; }
+.modeTile{ position:relative; appearance:none; cursor:pointer; padding:0; overflow:hidden;
+  width:clamp(148px,22vw,318px); height:clamp(200px,44vh,428px); border-radius:10px;
+  border:2px solid rgba(255,255,255,.34); background:#0d1c2e;
+  box-shadow:0 12px 30px rgba(2,16,40,.45);
+  transition:transform .16s, box-shadow .16s, border-color .16s; }
+.modeTile .tileArt{ position:absolute; inset:0; display:block; }
+.modeTile .tileArt svg{ display:block; width:100%; height:100%; }
+.modeTile .tileLabel{ position:absolute; left:4%; right:4%; bottom:6%; text-align:center;
+  font-size:clamp(16px,2.1vw,30px); font-weight:900; letter-spacing:.5px; line-height:.95;
+  color:#fff; text-transform:uppercase;
+  text-shadow:0 2px 0 rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.65); }
+.modeTile .tileTag{ position:absolute; left:8px; top:8px; font-size:9.5px; font-weight:700;
+  letter-spacing:2px; color:#fff; background:rgba(4,12,24,.62); padding:2px 7px; border-radius:4px;
+  border:1px solid rgba(255,255,255,.4); }
+.modeTile .tileTag:empty{ display:none; }
+.modeTile:hover{ transform:translateY(-4px); border-color:#fff; }
+.modeTile.sel{ transform:translateY(-6px) scale(1.035); border-color:#fff;
+  box-shadow:0 0 0 3px rgba(255,255,255,.85), 0 18px 44px rgba(2,16,40,.6); }
+.modeTile.locked .tileArt{ filter:saturate(.72) brightness(.84); }
+.tileGlow{ position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .16s;
+  background:radial-gradient(ellipse at 50% 112%,rgba(255,255,255,.4),rgba(255,255,255,0) 62%); }
+.modeTile.sel .tileGlow{ opacity:1; }
+.modePick{ position:relative; display:flex; align-items:center; justify-content:center;
+  gap:20px; width:100%; max-width:920px; margin-top:2px; }
+.modePickName{ font-size:clamp(14px,1.5vw,19px); font-weight:900; letter-spacing:4px; color:#fff;
+  text-shadow:0 2px 10px rgba(0,20,50,.5); }
+.modePickSub{ font-size:12px; color:#e8f5ff; margin-top:3px; text-shadow:0 1px 6px rgba(0,20,50,.6); }
+.modePick .btn.primary{ flex:0 0 auto; }
+.modePick .btn.locked{ background:linear-gradient(to bottom,#54636f,#2b3843);
+  border-color:rgba(255,255,255,.4); cursor:not-allowed; }
+.modeFoot{ position:absolute; left:0; right:0; bottom:0; height:42px; display:flex;
+  align-items:center; justify-content:space-between; gap:14px; padding:0 18px;
+  background:linear-gradient(to top,rgba(3,26,64,.6),rgba(3,26,64,0)); }
+.modeSigned{ font-size:12px; color:#dceaff; white-space:nowrap; }
+.modeSigned b{ color:#fff; }
+.modeSelect{ font-size:clamp(12px,1.35vw,17px); font-weight:900; letter-spacing:5px; color:#fff;
+  text-shadow:0 2px 10px rgba(0,20,50,.6); }
+.modeEngine{ display:flex; align-items:center; gap:7px; font-size:9.5px; letter-spacing:2px;
+  color:#dceaff; white-space:nowrap; }
+.modeEngine svg{ width:24px; height:24px; flex:0 0 auto; }
+.modeMeta{ position:relative; width:100%; max-width:1180px; margin-top:10px; }
+#startScreen .modeMeta .card{ padding:10px 14px; }
+#startScreen .modeMeta .settingRow{ margin:5px 0; }
+#startScreen .card{ background:rgba(6,22,44,.72); border-color:rgba(255,255,255,.26); }
+#startScreen .card h3{ color:#bfe6ff; }
+#startScreen .settingRow select{ background:rgba(8,26,46,.9); border-color:rgba(255,255,255,.35); }
+#startScreen .hint{ color:#e4f2ff; text-shadow:0 1px 5px rgba(0,20,50,.6); }
+#startScreen .settingsHost{ min-width:302px; }
+/* Unfolding the settings cards makes the screen taller than a short window, so
+   while the meta row is open the shelf tightens up, the cards take the room
+   that is left (scrolling inside themselves if they still need more) and the
+   bottom bar moves underneath them instead of being pinned across them. The
+   flex "order" values are what put the bar back at the bottom edge: the footer
+   is written before the cards in the markup, so without them it lands in the
+   middle of the screen. Everything the player needs stays on one screen and
+   the title screen itself never grows a scrollbar. */
+#startScreen.metaOpen{ padding-bottom:14px; }
+#startScreen.metaOpen .modeTop{ order:1; }
+#startScreen.metaOpen .modeRow{ order:2; margin:4px 0 2px; }
+#startScreen.metaOpen .modeTile{ width:clamp(132px,17vw,250px); height:clamp(150px,28vh,290px); }
+#startScreen.metaOpen .modePick{ order:3; }
+#startScreen.metaOpen .modeMeta{ order:4; flex:1 1 auto; min-height:0; overflow:hidden;
+  margin-top:6px; }
+#startScreen.metaOpen .modeMeta .card{ max-height:100%; overflow:auto; }
+/* a touch tighter than the pause-screen copy, so the unfolded panel lands
+   inside the room the shelf leaves for it instead of scrolling by a few px */
+#startScreen.metaOpen .modeMeta .settingRow{ margin:3px 0; }
+#startScreen.metaOpen .modeMeta .card h3{ margin-bottom:4px; }
+#startScreen.metaOpen .hint{ order:5; margin-top:6px; }
+#startScreen.metaOpen .modeFoot{ order:6; position:static; width:100%; max-width:1180px;
+  height:auto; min-height:36px; margin-top:4px; background:none; }
+
+/* ---------------- Touch controls (phones / tablets) ----------------
+   The layer stays dormant until the touch layer decides the device really is
+   a touch device (SETTINGS.touch: auto / on / off). Every size is multiplied by
+   --ts, so one media query can shrink the whole cluster on a short screen.
+   The stick is NOT in the markup: the module parks its base wherever the left
+   thumb lands, which is what makes a thumb-sized stick work on any display. */
+#touchUI{ position:absolute; inset:0; z-index:25; pointer-events:none; --ts:1;
+  touch-action:none; -webkit-tap-highlight-color:transparent; }
+@media (max-height:430px){ #touchUI{ --ts:0.84; } }
+#touchUI .tbtn{ position:absolute; pointer-events:auto; appearance:none; -webkit-appearance:none;
+  padding:0; font-family:var(--ui); font-weight:800; letter-spacing:1px; line-height:1.05;
+  color:#dff4ff; border-radius:50%; border:1px solid rgba(125,205,230,.45);
+  background:rgba(5,20,28,.34); text-shadow:0 1px 4px rgba(0,0,0,.85);
+  touch-action:none; -webkit-tap-highlight-color:transparent; }
+#touchUI .tbtn.on{ background:rgba(65,224,255,.34); border-color:#8ff2ff; color:#fff;
+  box-shadow:0 0 15px rgba(65,224,255,.5); }
+#touchUI .tbtn.ready{ border-color:var(--gold); color:#fff; box-shadow:0 0 15px rgba(255,198,61,.55); }
+#touchUI .tbtn.empty{ opacity:.42; }
+/* the firing cluster sits under the right thumb */
+#touchUI .tFire{ right:calc(var(--ts)*16px); bottom:calc(var(--ts)*22px);
+  width:calc(var(--ts)*96px); height:calc(var(--ts)*96px); font-size:calc(var(--ts)*13px); }
+#touchUI .tAim{ right:calc(var(--ts)*98px); bottom:calc(var(--ts)*104px);
+  width:calc(var(--ts)*74px); height:calc(var(--ts)*74px); font-size:calc(var(--ts)*11px); }
+#touchUI .tJump{ right:calc(var(--ts)*120px); bottom:calc(var(--ts)*26px);
+  width:calc(var(--ts)*62px); height:calc(var(--ts)*62px); font-size:calc(var(--ts)*10px); }
+#touchUI .tReload{ right:calc(var(--ts)*22px); bottom:calc(var(--ts)*126px);
+  width:calc(var(--ts)*62px); height:calc(var(--ts)*62px); font-size:calc(var(--ts)*9.5px); }
+#touchUI .tCrouch{ right:calc(var(--ts)*178px); bottom:calc(var(--ts)*72px);
+  width:calc(var(--ts)*58px); height:calc(var(--ts)*58px); font-size:calc(var(--ts)*9.5px); }
+#touchUI .tUse{ right:calc(var(--ts)*180px); bottom:calc(var(--ts)*154px);
+  width:calc(var(--ts)*60px); height:calc(var(--ts)*60px); font-size:calc(var(--ts)*9px); }
+/* menu row along the top right, item strip along the top left */
+#touchUI .tUtil{ top:calc(var(--ts)*8px); width:calc(var(--ts)*52px); height:calc(var(--ts)*32px);
+  border-radius:calc(var(--ts)*8px); font-size:calc(var(--ts)*9px); }
+#touchUI .tPause{ right:calc(var(--ts)*10px); }
+#touchUI .tMap{ right:calc(var(--ts)*68px); }
+#touchUI .tScores{ right:calc(var(--ts)*126px); }
+#touchUI .tSide{ width:calc(var(--ts)*54px); height:calc(var(--ts)*34px);
+  border-radius:calc(var(--ts)*9px); font-size:calc(var(--ts)*9px); }
+#touchUI .tSwap{ left:calc(var(--ts)*10px); top:calc(var(--ts)*60px); }
+#touchUI .tBand{ left:calc(var(--ts)*70px); top:calc(var(--ts)*60px); }
+#touchUI .tShield{ left:calc(var(--ts)*130px); top:calc(var(--ts)*60px); }
+#touchUI .tSprint{ left:calc(var(--ts)*10px); top:calc(var(--ts)*100px); }
+#touchUI .tMed{ left:calc(var(--ts)*70px); top:calc(var(--ts)*100px); }
+#touchUI .tNade{ left:calc(var(--ts)*130px); top:calc(var(--ts)*100px); }
+/* the movement stick: faint where it idles, solid where a thumb lands */
+#touchStickBase{ position:absolute; left:0; top:0; width:132px; height:132px;
+  margin:-66px 0 0 -66px; border-radius:50%; border:2px solid rgba(125,205,230,.35);
+  background:rgba(5,20,28,.20); opacity:.30; transition:opacity .12s; }
+#touchStickBase.live{ opacity:.95; }
+#touchStickKnob{ position:absolute; left:50%; top:50%; width:58px; height:58px;
+  margin:-29px 0 0 -29px; border-radius:50%; background:rgba(65,224,255,.28);
+  border:2px solid rgba(234,252,255,.6); }
+/* portrait is hopeless with two thumbs, so offer to rotate - but never lock the
+   player out: tapping the notice plays on anyway */
+#rotateHint{ position:absolute; inset:0; z-index:35; display:none; pointer-events:auto;
+  flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  background:rgba(3,6,9,.93); color:#eafcff; font-weight:800; letter-spacing:4px;
+  font-size:15px; text-align:center; padding:24px; }
+#rotateHint span{ font-size:11px; letter-spacing:2px; color:#7fb6c9; font-weight:600; }
+body.touchControls.portrait #rotateHint{ display:flex; }
+body.touchControls.noRotateHint #rotateHint{ display:none; }
+
+/* ---- how the desktop HUD re-flows once the thumbs need the corners ---- */
+body.touchControls{ overscroll-behavior:none; }
+body.touchControls #gameCanvas{ touch-action:none; }
+/* The weapon chips (and the consumable cells, if they are ever shown again) sit
+   in #hudBottom, a sibling of #hud whose inline pointer-events:none only the
+   child itself can override. On a phone they double as buttons. */
+body.touchControls #hudBottom .slot, body.touchControls #hudBottom .cons{ pointer-events:auto; }
+body.touchControls .box{ padding:3px 9px; }
+body.touchControls .box .big{ font-size:19px; }
+body.touchControls .box label{ font-size:8px; letter-spacing:1px; }
+body.touchControls #compassWrap{ max-width:30vw; }
+body.touchControls #compass{ width:30vw; }
+body.touchControls #zonePanel{ top:42px; padding:2px 10px; min-width:130px; }
+body.touchControls #zoneTimer{ font-size:15px; }
+body.touchControls #killfeed{ top:96px; left:50%; transform:translateX(-50%); right:auto;
+  width:min(62vw,240px); align-items:center; flex-direction:column-reverse;
+  justify-content:flex-end; max-height:88px; overflow:hidden; }
+body.touchControls .kf{ font-size:10px; padding:2px 7px; }
+body.touchControls #minimapWrap{ right:8px; top:56px; width:118px; height:118px; }
+body.touchControls #minimap{ width:118px; height:118px; }
+/* The bottom band is one stack: health and armour sit on the very edge, the
+   weapon readout and the slot chips above them, and the transient lines (toasts,
+   pickup prompt) above that - nothing crosses anything else. */
+body.touchControls #bottomLeft{ left:50%; transform:translateX(-50%); bottom:6px; width:200px; }
+body.touchControls #armorRow{ justify-content:center; font-size:9px; }
+body.touchControls #bottomRight{ left:50%; transform:translateX(-50%); bottom:60px;
+  text-align:center; }
+body.touchControls #weaponName{ font-size:13px; }
+body.touchControls #weaponTier{ font-size:8px; letter-spacing:1px; min-height:11px; }
+body.touchControls #ammoLine{ font-size:19px; }
+body.touchControls #slotRow{ justify-content:center; margin-top:3px; }
+body.touchControls .slot{ width:42px; height:21px; }
+body.touchControls .slotIcon{ height:15px; width:30px; }
+body.touchControls #consumRow{ display:none; }      /* the counts ride on the buttons */
+body.touchControls #toastLane{ bottom:36%; }
+body.touchControls #healBarWrap{ bottom:33%; }
+body.touchControls #pickupPrompt{ top:57%; font-size:12.5px; }
+body.touchControls #dropPanel{ bottom:44%; }
+body.touchControls #spectatePanel{ top:auto; bottom:36%; font-size:12px; }
+/* the pad never shows through a menu screen (it is inert there anyway) */
+body.touchControls.screenOpen #touchUI{ display:none; }
 </style>
 </head>
 <body>
@@ -261,6 +509,7 @@ canvas{ display:block; }
       <div id="healBarTrack"><div id="healBarFill"></div></div>
     </div>
     <div id="dropPanel" class="hidden">
+      <div id="dropMapName">ISLE ROYALE</div>
       <div id="altitude">0 m</div>
       <div id="dropHint">WASD STEER &nbsp;•&nbsp; SPACE DEPLOY GLIDER</div>
     </div>
@@ -306,13 +555,214 @@ canvas{ display:block; }
   </div>
 
   <div id="startScreen" class="screen">
-    <h1>ISLE ROYALE</h1>
-    <p class="sub">100 COMBATANTS &nbsp;&bull;&nbsp; 1 WINNER</p>
-    <div>
-      <button class="btn primary" id="btnPlay">PLAY</button>
-      <button class="btn" id="btnControls">CONTROLS</button>
+    <div class="modeTop">
+      <div class="modeBrand">ISLE ROYALE</div>
+      <span class="modeTopBtns">
+        <button class="btn small" id="btnSettings">SETTINGS</button>
+        <button class="btn small" id="btnControls">CONTROLS</button>
+      </span>
     </div>
-    <div class="cols" style="margin-top:12px">
+    <!-- map rotation timer: names the island that is live right now and counts
+         the real wall clock down to the moment it flips to the other one -->
+    <div id="mapRotLine" role="timer" aria-label="Map rotation countdown">
+      <span class="rotTag">MAP ROTATION</span>
+      <span class="rotNow">NOW PLAYING <b id="mapRotName">ISLE ROYALE</b></span>
+      <span class="rotClockCol">
+        <span class="rotWord" id="mapRotWord">SWITCHES TO</span>
+        <b id="mapRotNext">SURF CITY</b>
+        <span class="rotWord">IN</span>
+        <span id="mapRotClock">30:00</span>
+      </span>
+      <span class="rotTip" id="mapRotTip">the island changes every 30 real minutes</span>
+      <span class="rotBarWrap"><i id="mapRotBar"></i></span>
+    </div>
+
+    <div class="modeRow" id="modeRow">
+      <button class="modeTile" type="button" data-mode="stw" aria-label="Save the World">
+        <span class="tileArt">
+          <svg viewBox="0 0 340 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="stwBg" x1="0" y1="0" x2=".3" y2="1">
+                <stop offset="0" stop-color="#3b1178"/><stop offset=".52" stop-color="#7b2ff7"/>
+                <stop offset="1" stop-color="#c65bff"/>
+              </linearGradient>
+              <radialGradient id="stwGlow" cx=".5" cy=".42" r=".55">
+                <stop offset="0" stop-color="#ff9bf0" stop-opacity=".7"/>
+                <stop offset="1" stop-color="#ff9bf0" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="stwShade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#180433" stop-opacity="0"/>
+                <stop offset=".55" stop-color="#180433" stop-opacity=".32"/>
+                <stop offset="1" stop-color="#180433" stop-opacity=".82"/>
+              </linearGradient>
+            </defs>
+            <rect width="340" height="460" fill="url(#stwBg)"/>
+            <ellipse cx="170" cy="205" rx="185" ry="155" fill="url(#stwGlow)"/>
+            <g fill="#e8b6ff" opacity=".16">
+              <ellipse cx="66" cy="146" rx="94" ry="34"/>
+              <ellipse cx="276" cy="238" rx="80" ry="27"/>
+            </g>
+            <g>
+              <path d="M34 460 C44 370 90 328 170 328 C250 328 296 370 306 460 Z" fill="#2a0d52"/>
+              <path d="M116 348 C128 300 212 300 224 348 C238 384 198 398 170 398 C142 398 102 384 116 348 Z" fill="#3a1470"/>
+              <path d="M132 278 C104 248 70 216 24 194 C66 198 110 218 144 250 C154 259 148 274 132 278 Z" fill="#c37dff"/>
+              <path d="M208 278 C236 248 270 216 316 194 C274 198 230 218 196 250 C186 259 192 274 208 278 Z" fill="#c37dff"/>
+              <path d="M134 272 l-12 -36 l32 22 z" fill="#c37dff"/>
+              <path d="M170 252 l0 -42 l23 32 z" fill="#c37dff"/>
+              <path d="M206 272 l13 -34 l15 28 z" fill="#c37dff"/>
+              <ellipse cx="170" cy="286" rx="52" ry="44" fill="#41167f"/>
+              <ellipse cx="150" cy="282" rx="11" ry="7" fill="#ffe6ff"/>
+              <ellipse cx="192" cy="282" rx="11" ry="7" fill="#ffe6ff"/>
+              <path d="M140 316 l15 10 l-15 10 l15 10 l-17 -4 z" fill="#21073f"/>
+              <path d="M186 316 l15 10 l-15 10 l15 10 l-17 -4 z" fill="#21073f"/>
+            </g>
+            <g fill="none" stroke="#f2c8ff" stroke-width="3" stroke-linecap="round" opacity=".9">
+              <path d="M62 116 l16 34 l-14 6 l20 40"/>
+              <path d="M284 148 l-14 30 l12 8 l-18 34"/>
+              <path d="M172 70 l10 26 l-12 6 l14 30"/>
+            </g>
+            <rect width="340" height="460" fill="url(#stwShade)"/>
+          </svg>
+        </span>
+        <span class="tileGlow"></span>
+        <span class="tileTag">COMING SOON</span>
+        <span class="tileLabel">SAVE THE<br />WORLD</span>
+      </button>
+      <button class="modeTile" type="button" data-mode="br" aria-label="Battle Royale">
+        <span class="tileArt">
+          <svg viewBox="0 0 340 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="brSky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#0a49b4"/><stop offset=".45" stop-color="#2f9bf0"/>
+                <stop offset=".78" stop-color="#a9dcff"/><stop offset="1" stop-color="#e8f7ff"/>
+              </linearGradient>
+              <linearGradient id="brSea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#2a7fbd"/><stop offset="1" stop-color="#0b3a68"/>
+              </linearGradient>
+              <linearGradient id="brShade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#02132e" stop-opacity="0"/>
+                <stop offset=".55" stop-color="#02132e" stop-opacity=".3"/>
+                <stop offset="1" stop-color="#02132e" stop-opacity=".8"/>
+              </linearGradient>
+            </defs>
+            <rect width="340" height="460" fill="url(#brSky)"/>
+            <circle cx="58" cy="70" r="44" fill="#ffffff" opacity=".2"/>
+            <g fill="#ffffff" opacity=".5">
+              <ellipse cx="248" cy="92" rx="54" ry="13"/>
+              <ellipse cx="214" cy="84" rx="30" ry="10"/>
+              <ellipse cx="92" cy="150" rx="42" ry="11"/>
+            </g>
+            <g fill="#08233f" opacity=".9">
+              <path d="M236 122 l16 -7 l14 7 l14 -6 l16 6 c6 2 6 9 -1 11 l-15 4 l-14 -3 l-16 3 l-13 -3 l-14 4 c-6 -2 -6 -9 -1 -11 z"/>
+              <path d="M206 122 c-16 -2 -30 -8 -42 -15" stroke="#08233f" stroke-width="2" fill="none" opacity=".5"/>
+            </g>
+            <g fill="#0b2a4a">
+              <g transform="translate(84 196) scale(.72)">
+                <path d="M-30 0 A30 22 0 0 1 30 0 Z"/>
+                <path d="M-30 0 L-6 26 M30 0 L6 26" stroke="#0b2a4a" stroke-width="2.6" fill="none"/>
+                <rect x="-7" y="26" width="14" height="19" rx="6"/>
+              </g>
+              <g transform="translate(152 250) scale(.9)">
+                <path d="M-30 0 A30 22 0 0 1 30 0 Z"/>
+                <path d="M-30 0 L-6 26 M30 0 L6 26" stroke="#0b2a4a" stroke-width="2.6" fill="none"/>
+                <rect x="-7" y="26" width="14" height="19" rx="6"/>
+              </g>
+              <g transform="translate(250 172) scale(.8)">
+                <path d="M-30 0 A30 22 0 0 1 30 0 Z"/>
+                <path d="M-30 0 L-6 26 M30 0 L6 26" stroke="#0b2a4a" stroke-width="2.6" fill="none"/>
+                <rect x="-7" y="26" width="14" height="19" rx="6"/>
+              </g>
+            </g>
+            <path d="M0 342 C46 314 74 330 104 306 C130 286 150 300 178 322 C206 344 250 316 292 332 C318 342 332 336 340 330 L340 460 L0 460 Z" fill="#2f8b57"/>
+            <g fill="#1d6b41">
+              <path d="M58 344 l14 -30 l14 30 z"/>
+              <path d="M132 336 l13 -27 l13 27 z"/>
+              <path d="M232 346 l14 -30 l14 30 z"/>
+            </g>
+            <rect x="0" y="368" width="340" height="92" fill="url(#brSea)"/>
+            <g stroke="#ffffff" stroke-width="2" opacity=".28" fill="none">
+              <path d="M14 392 q26 -7 52 0 q26 7 52 0"/>
+              <path d="M180 412 q30 -8 60 0 q30 8 60 0"/>
+            </g>
+            <rect width="340" height="460" fill="url(#brShade)"/>
+          </svg>
+        </span>
+        <span class="tileGlow"></span>
+        <span class="tileTag"></span>
+        <span class="tileLabel">BATTLE<br />ROYALE</span>
+      </button>
+      <button class="modeTile" type="button" data-mode="cre" aria-label="Creative">
+        <span class="tileArt">
+          <svg viewBox="0 0 340 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="creBg" x1="0" y1="0" x2=".6" y2="1">
+                <stop offset="0" stop-color="#0d7f6e"/><stop offset=".5" stop-color="#17b394"/>
+                <stop offset="1" stop-color="#7ff0c4"/>
+              </linearGradient>
+              <pattern id="creGrid" width="26" height="26" patternUnits="userSpaceOnUse">
+                <path d="M26 0 H0 V26" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+              </pattern>
+              <linearGradient id="creShade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#04322a" stop-opacity="0"/>
+                <stop offset=".58" stop-color="#04322a" stop-opacity=".3"/>
+                <stop offset="1" stop-color="#04322a" stop-opacity=".8"/>
+              </linearGradient>
+            </defs>
+            <rect width="340" height="460" fill="url(#creBg)"/>
+            <rect width="340" height="460" fill="url(#creGrid)"/>
+            <g fill="none" stroke="#ffffff" stroke-width="2" opacity=".5">
+              <path d="M38 98 l26 -14 l26 14 l-26 14 z"/>
+              <path d="M264 140 l30 -16 l30 16 l-30 16 z"/>
+              <path d="M64 258 l34 -18 l34 18 l-34 18 z"/>
+              <path d="M64 258 l34 18 l0 26 l-34 -18 z"/>
+            </g>
+            <g>
+              <ellipse cx="176" cy="392" rx="88" ry="26" fill="#04322a" opacity=".22"/>
+              <rect x="132" y="338" width="16" height="48" rx="7" fill="#e9d9ae"/>
+              <rect x="206" y="338" width="16" height="48" rx="7" fill="#e9d9ae"/>
+              <ellipse cx="178" cy="330" rx="66" ry="48" fill="#f7edd2"/>
+              <path d="M160 300 c-4 -42 -10 -74 -18 -92 c32 4 46 46 46 92 z" fill="#f7edd2"/>
+              <ellipse cx="204" cy="196" rx="37" ry="30" fill="#f7edd2"/>
+              <path d="M182 174 l-7 -35 l20 9 z" fill="#f7edd2"/>
+              <path d="M224 174 l11 -33 l-21 7 z" fill="#f7edd2"/>
+              <ellipse cx="240" cy="204" rx="20" ry="15" fill="#e9d9ae"/>
+              <circle cx="248" cy="199" r="3.5" fill="#2b2118"/>
+              <circle cx="214" cy="188" r="5" fill="#2b2118"/>
+              <path d="M156 296 l42 12 l-5 19 l-45 -12 z" fill="#e2607f"/>
+              <path d="M150 336 l45 -6 l4 19 l-47 6 z" fill="#4fc3e8"/>
+              <path d="M196 168 l13 -42 l19 38 z" fill="#ffd23f"/>
+              <circle cx="209" cy="124" r="7" fill="#ff6b6b"/>
+            </g>
+            <rect width="340" height="460" fill="url(#creShade)"/>
+          </svg>
+        </span>
+        <span class="tileGlow"></span>
+        <span class="tileTag">COMING SOON</span>
+        <span class="tileLabel">CREATIVE</span>
+      </button>
+    </div>
+
+    <div class="modePick">
+      <div>
+        <div class="modePickName" id="modePickName">BATTLE ROYALE</div>
+        <div class="modePickSub" id="modePickSub">100 combatants, 1 winner &mdash; drop in, loot up, outlast the storm.</div>
+      </div>
+      <button class="btn primary" id="btnPlay">PLAY</button>
+    </div>
+
+    <div class="modeFoot">
+      <span class="modeSigned">Signed in as: <b id="signedName">Recruit</b></span>
+      <span class="modeSelect">SELECT A GAME MODE</span>
+      <span class="modeEngine" title="three.js r160">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#ffffff" stroke-width="2" opacity=".85"/>
+          <path d="M16 9 l9 15 h-18 z" fill="none" stroke="#ffffff" stroke-width="2.2"
+                stroke-linejoin="round"/>
+        </svg>
+        <em>THREE.JS r160</em>
+      </span>
+    </div>
+    <div class="cols modeMeta hidden" id="modeMeta">
       <div class="card settingsHost" data-host="start"></div>
       <div class="card">
         <h3>MATCH FORMAT</h3>
@@ -325,9 +775,11 @@ canvas{ display:block; }
         </table>
       </div>
     </div>
-    <div class="hint">
-      Click to lock mouse &bull; ESC pauses &bull; Audio starts after your first click
+    <div class="hint" id="startHint">
+      Pick a mode, press PLAY &bull; mouse locks on click &bull; ESC pauses &bull;
+      audio starts after your first click
     </div>
+    <div class="hint" id="charCredit"></div>
   </div>
 
   <div id="controlsScreen" class="screen hidden">
@@ -346,7 +798,7 @@ canvas{ display:block; }
         <h3>COMBAT</h3>
         <table>
           <tr><td class="k">LMB</td><td>Fire (&amp; hold for autos)</td></tr>
-          <tr><td class="k">RMB</td><td>Aim down sights</td></tr>
+          <tr><td class="k">RMB / V</td><td>Aim down sights (V rebindable, toggle optional)</td></tr>
           <tr><td class="k">R</td><td>Reload</td></tr>
           <tr><td class="k">1 &hellip; 5</td><td>Weapon slots (wheel cycles)</td></tr>
           <tr><td class="k">G</td><td>Throw frag grenade</td></tr>
@@ -361,6 +813,20 @@ canvas{ display:block; }
           <tr><td class="k">Tab</td><td>Scoreboard + inventory</td></tr>
           <tr><td class="k">F1</td><td>FPS &amp; network stats</td></tr>
           <tr><td class="k">ESC</td><td>Pause / release mouse</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>TOUCH (PHONES &amp; TABLETS)</h3>
+        <table>
+          <tr><td class="k">Left thumb</td><td>Drag anywhere on the left half to move &mdash; a stick appears under your thumb</td></tr>
+          <tr><td class="k">Right thumb</td><td>Drag the view to look / turn</td></tr>
+          <tr><td class="k">FIRE</td><td>Hold to shoot (tap the screen to skip when spectating)</td></tr>
+          <tr><td class="k">AIM / CROUCH / SPRINT</td><td>Tap to toggle</td></tr>
+          <tr><td class="k">JUMP</td><td>Jump &mdash; deploys the glider during the drop</td></tr>
+          <tr><td class="k">RELOAD / PICK UP</td><td>Reload, and take the loot you are facing</td></tr>
+          <tr><td class="k">SWAP / BAND / MED / SHIELD / NADE</td><td>Weapon slot cycle and consumables (tap a weapon chip to pick that slot)</td></tr>
+          <tr><td class="k">PAUSE / MAP / SCORES</td><td>Top-right buttons; tap the map to close it</td></tr>
+          <tr><td class="k">Settings</td><td>Touch controls: auto / on / off, plus a touch look-speed slider</td></tr>
         </table>
       </div>
     </div>
@@ -441,6 +907,11 @@ canvas{ display:block; }
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>if (!window.THREE) document.write('<script src="https://unpkg.com/three@0.160.0/build/three.min.js"><\/script>');</script>
 <script>if (!window.THREE) document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"><\/script>');</script>
+<!-- GLTFLoader as a CLASSIC script: the addon only ships as an ES module, and
+     a page opened straight from disk cannot import modules (or XHR a local
+     file). Built from the npm module by tools/build-gltfloader.ps1 - it only
+     defines THREE.GLTFLoader, and the game runs fine without it. -->
+<script src="vendor/GLTFLoader.js"></script>
 <script>
 /* =====================================================================
    ISLE ROYALE - a complete single-file battle royale.
@@ -489,6 +960,7 @@ const CONFIG = {
   SEA_LEVEL: 0,
   WATER_WADE_DEPTH: 1.1,    // deeper than this and you are swimming/slowed
   WORLD_BOUND: 492,         // hard boundary radius (invisible wall in the sea)
+  MAP_ROTATION_MIN: 30,     // <<< REAL-LIFE minutes each map stays in rotation
   TOWN_COUNT: 3,
   TREE_COUNT: 260,
   ROCK_COUNT: 170,
@@ -540,9 +1012,12 @@ const CONFIG = {
   BOT_SPEED_WALK: 3.4,
   BOT_SPEED_RUN: 6.4,
   BOT_HEAL_DELAY: 2.2,
-  BOT_ACCURACY: 0.5,        // global multiplier on every bot's hit chance.
-                            // 1.0 = as lethal as the weapon stats allow; lower
-                            // means bots miss more and the player lives longer.
+  /* Bot marksmanship. `BOT_ACCURACY` governs bot-versus-bot fights and keeps the
+     lobby thinning out at a normal pace; `BOT_ACCURACY_PLAYER` applies when the
+     bot is shooting the human, and is deliberately much lower - that is the
+     "let me survive a firefight" knob. Raise it for a harder game. */
+  BOT_ACCURACY: 0.9,
+  BOT_ACCURACY_PLAYER: 0.42,
 
   /* ------------------------- GRENADE ------------------------- */
   GRENADE_FUSE: 3.0,
@@ -568,10 +1043,59 @@ const CONFIG = {
   CAM_LAG: 12,              // how quickly the camera follows the player
   MOVE_FACE_LAG: 16,        // how quickly the character turns to the aim
 
+  /* ------------------------- PLAYER CHARACTER -------------------------
+     The human plays as a real character model, the bots stay beans: BotView
+     draws all 99 of them as instanced capsules, this one model is the player. */
+  CHARACTER: {
+    name: 'Freddy Fazbear',
+    credit: '- model by I6NIS (sketchfab.com/i6nis), CC BY-NC 4.0',
+    enabled: true,                    // false = keep the built-in humanoid
+    file: 'freddy_fazzbear.glb',      // sits next to index.html
+    base64File: 'freddy_fazzbear.glb.js',   // file:// fallback (generated)
+    base64Global: 'FREDDY_GLB_B64',
+    height: 1.74,                     // metres from the soles to the top
+    yawTurn: 0,                       // add Math.PI if a model faces -Z
+    bob: 0.05,                        // walk-cycle bounce (metres)
+    sway: 0.06,                       // walk-cycle roll (radians)
+    turnLead: 0.22,                   // how much of the aim lean the body takes
+    /* Locomotion clips. The model has no animation in it, so the real gait
+       comes from two Mixamo FBX cycles retargeted onto the rig by
+       tools/fbx-bake.js and shipped as this sidecar. They drive the limbs
+       whenever he is actually moving; the procedural cycle above still
+       handles everything else (idle, crouch, gliding) and is what runs if the
+       sidecar is missing. */
+    anims: {
+      enabled: true,
+      file: 'freddy_anims.js',        // generated next to index.html
+      global: 'FREDDY_ANIMS',
+      /* The cadence this sets is a deliberate trade. The baked cycles step only
+         about 0.8-0.9 m of ground per cycle (the playtest scenario measures it),
+         so at the game's movement speeds (5.7 walking, 8.6 sprinting) a
+         slide-free cadence would be 4-9 cycles a second, which no walk or run
+         animation survives. Treating a cycle as 4.2 m keeps the legs at a human
+         tempo and lets the planted foot skate instead - on the flat, untextured
+         ground that is what the skate costs. */
+      stride: 4.2,                    // metres of travel per stride cycle: the
+                                      // cadence follows the player's real speed
+      rateMin: 0.55,                  // cadence clamp (cycles/second), so a slow
+      rateMax: 1.90,                  // walk or a flat-out sprint never looks silly
+      blend: 3.0,                     // speed at which the cycle owns the limbs
+      runFrom: 6.4,                   // speed where the run cycle starts fading in
+      runFull: 7.8,                   // ... and where it has taken over the walk
+      crouch: 0.25                    // how much of the cycle survives a crouch
+    }
+  },
+
   /* ------------------------- LOOK & COLOURS ------------------------- */
   FOV_BASE: 78,
   FOV_SPRINT: 86,
   FOV_ADS: 55,
+  /* Radius of the sky dome. It MUST stay inside the camera far plane (App.init
+     builds the camera with a 1600 m far plane) - a dome that reaches past it is
+     clipped away by WebGL and the sky renders as the black clear colour.
+     buildSky() clamps this against the far plane and World.syncSky() keeps the
+     dome centred on the camera. */
+  SKY_RADIUS: 1150,
   RARITY_COLORS: [0xc9c9c9, 0x4ade4a, 0x3aa0ff, 0xc060ff, 0xffc020],
   RARITY_HEX: ['#c9c9c9', '#4ade4a', '#3aa0ff', '#c060ff', '#ffc020'],
   RARITY_NAMES: ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'],
@@ -592,11 +1116,24 @@ const QUALITY_PRESETS = {
 
 /* Runtime settings (exposed on the menus). */
 const SETTINGS = {
+  name: 'Recruit',          // shown as "Signed in as:" on the mode shelf
   sensitivity: 0.0022,
   volume: 0.7,
   muted: false,
   quality: 'high',
-  showFps: false
+  showFps: false,
+  /* Aiming. `adsKey` adds a keyboard binding next to right-mouse so laptops can
+     aim without holding a trackpad click; `adsToggle` turns holding into a
+     toggle, which is what a trackpad really needs (swipe + click at once is
+     impossible on most of them). */
+  adsKey: 'KeyV',
+  adsToggle: false,
+  /* Touch controls. 'auto' shows the on-screen pad only on a device whose
+     primary pointer is a finger, 'on' forces it (a phone that misreports
+     itself, or a desktop you want to try it on) and 'off' hides it.
+     `touchSens` scales the drag-to-look speed on top of the mouse sensitivity. */
+  touch: 'auto',
+  touchSens: 1.4
 };
 
 /* =====================================================================
@@ -1020,8 +1557,9 @@ const World = {
   platforms: [],          // boxes you can stand on (crates, piers, hay bales)
   grid: null,             // spatial hash of the colliders
   towns: [], lootPoints: [], landmarks: [], treeSpots: [], spawnSpots: [],
+  roads: [],              // polylines tinted onto the terrain + drawn on the map
   mapCanvas: null,        // pre-rendered top-down map used by minimap + full map
-  sun: null, hemi: null, water: null, waterUniforms: null, terrain: null,
+  sun: null, hemi: null, water: null, waterUniforms: null, terrain: null, sky: null,
   boundary: 0, quality: QUALITY_PRESETS.high   // preset is re-stamped by World.build
 };
 
@@ -1031,6 +1569,7 @@ const FLATS = [];
 /* analytic island height. Masked hills + a central rise, then a wide shelf that
    drops below sea level so the shoreline is a proper beach. */
 function baseHeight(x, z) {
+  if (World.mapId === 'surf') return surfBaseHeight(x, z);
   const d = Math.sqrt(x * x + z * z);
   const R = CONFIG.ISLAND_RADIUS;
   const mask = 1 - smoothstep(clamp((d - R * 0.60) / (R * 0.45), 0, 1));
@@ -1039,7 +1578,153 @@ function baseHeight(x, z) {
   h += clamp(1 - d / (R * 0.75), 0, 1) * 7;
   return h * mask - (1 - mask) * 26;
 }
-/* same function with the town / landmark pads blended in */
+/* ---------------- SURF CITY (the Reload map) ----------------
+   The shoreline below is read straight off the reference map: one radius
+   sample every ~15 degrees of bearing, so the island keeps its real
+   silhouette - the broad rounded north with the big north-east lobe over
+   Divey Dam, the pinched flanks at mid-island, the south-west bulge at
+   Cashmere Cliffs and the long tapered south tip at Breaker Beach. */
+const SURF_SHORE = [
+  [0.10, 295], [0.28, 352], [0.53, 377], [0.84, 361], [1.18, 363],
+  [1.42, 400], [1.68, 378], [2.01, 371], [2.34, 375], [2.68, 365],
+  [2.98, 343], [3.22, 287], [3.49, 339], [3.71, 361], [4.05, 370],
+  [4.35, 391], [4.61, 398], [4.84, 385], [5.14, 392], [5.48, 404],
+  [5.79, 384], [6.06, 342]
+];
+/* smooth shoreline radius for a bearing; the table wraps back on itself */
+function surfShoreR(ang) {
+  const T = SURF_SHORE;
+  let a = ang;
+  while (a < T[0][0]) a += Math.PI * 2;
+  for (let i = 0; i < T.length; i++) {
+    const a0 = T[i][0];
+    const a1 = (i + 1 < T.length) ? T[i + 1][0] : T[0][0] + Math.PI * 2;
+    if (a < a1) {
+      const t = (a - a0) / (a1 - a0);
+      return T[i][1] + (T[(i + 1) % T.length][1] - T[i][1]) * (t * t * (3 - 2 * t));
+    }
+  }
+  return T[0][1];
+}
+
+/* the river's course: used for the water carve and for the valley the land
+   dips into on either side of it */
+const SURF_RIVER = [
+  [110, -196], [116, -176], [122, -156], [124, -132], [120, -106],
+  [112, -80], [104, -54], [98, -26], [93, 2], [89, 34], [87, 68],
+  [85, 102], [82, 136], [79, 170], [75, 204], [71, 238], [67, 272],
+  [63, 306], [60, 340], [58, 374], [56, 400]
+];
+/* the water the reference map shows: the big lake the dam holds back, the
+   wide lagoon below the dam, the river that runs south through downtown and
+   out at Breaker Beach and the ponds by Sus Studios and the cliffs */
+const SURF_WATER = [
+  /* the northern lake the dam holds back: five overlapping pools so the
+     shoreline is organic rather than an obvious ellipse, and so the water
+     reaches the dam face at (110,-190) and leaves the dam town dry */
+  { ellipse: true, x: 140, z: -222, rx: 70, rz: 36, rot: -0.10, depth: 40, taper: 0.45 },
+  { ellipse: true, x: 110, z: -202, rx: 52, rz: 34, rot: -0.05, depth: 46, taper: 0.45 },
+  { ellipse: true, x: 156, z: -206, rx: 34, rz: 20, rot: -0.35, depth: 34, taper: 0.45 },
+  { ellipse: true, x: 74,  z: -238, rx: 46, rz: 34, rot: 0.45,  depth: 36, taper: 0.45 },
+  { ellipse: true, x: 188, z: -244, rx: 36, rz: 26, rot: -0.50, depth: 32, taper: 0.45 },
+  /* the lagoon the dam spills into */
+  { ellipse: true, x: 128, z: -146, rx: 48, rz: 24, rot: -0.15, depth: 30, taper: 0.45 },
+  { ellipse: true, x: 196, z: 140,  rx: 26, rz: 20, rot: 0,     depth: 24, taper: 0.5 },  // pond, Sus Studios
+  { ellipse: true, x: -255, z: 96,  rx: 28, rz: 20, rot: 0.30,  depth: 28, taper: 0.5 },  // spring pond
+  /* the river: down from the dam, through downtown and out at Breaker Beach.
+     A wide taper so it sits in a valley rather than a slot canyon. */
+  { pts: SURF_RIVER, half: 22, depth: 26, taper: 0.5 }
+];
+/* how much to cut the terrain for Surf City's water at (x, z) */
+function surfCarve(x, z) {
+  let cut = 0;
+  for (let i = 0; i < SURF_WATER.length; i++) {
+    const w = SURF_WATER[i];
+    let t;
+    if (w.ellipse) {
+      let ex = x - w.x, ez = z - w.z;
+      if (w.rot) {                        // rotated pools give a natural outline
+        const c = Math.cos(w.rot), s = Math.sin(w.rot);
+        const rx = ex * c + ez * s;
+        ez = -ex * s + ez * c;
+        ex = rx;
+      }
+      ex /= w.rx; ez /= w.rz;
+      t = Math.sqrt(ex * ex + ez * ez);
+    } else {
+      let best = 1e9;
+      for (let p = 0; p < w.pts.length - 1; p++) {
+        const ax = w.pts[p][0], az = w.pts[p][1];
+        const bx = w.pts[p + 1][0], bz = w.pts[p + 1][1];
+        const dx = bx - ax, dz = bz - az;
+        let u = ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz);
+        u = clamp(u, 0, 1);
+        const d = dist2D(x, z, ax + dx * u, az + dz * u);
+        if (d < best) best = d;
+      }
+      t = best / w.half;
+    }
+    /* full depth across the middle of the body, tapering towards the edge. The
+       taper is per body: a wide one gives a river valley instead of a slot */
+    cut += smoothstep(clamp((1 - t) / (w.taper || 0.28), 0, 1)) * w.depth;
+  }
+  return cut;
+}
+
+/* how deep the land dips towards the river: 1 in the channel, 0 far away. The
+   carve itself already cuts the water; this puts it in a valley so the banks
+   rise out of the water instead of dropping off a plateau. */
+function surfRiverValley(x, z) {
+  let best = 1e9;
+  for (let p = 0; p < SURF_RIVER.length - 1; p++) {
+    const ax = SURF_RIVER[p][0], az = SURF_RIVER[p][1];
+    const bx = SURF_RIVER[p + 1][0], bz = SURF_RIVER[p + 1][1];
+    const dx = bx - ax, dz = bz - az;
+    let u = ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz);
+    u = clamp(u, 0, 1);
+    const d = dist2D(x, z, ax + dx * u, az + dz * u);
+    if (d < best) best = d;
+  }
+  return 1 - smoothstep(clamp(best / 80, 0, 1));
+}
+/* Surf City's land: terrain only - the water is carved afterwards, in
+   shapedHeight, so the lake, the river and downtown can overlap.
+   The coast is driven by the shoreline table, not by the height noise: inside
+   the reference outline the land is blended down onto a dry beach shelf and
+   only past that outline does it drop below sea level. That keeps the island
+   the same size and shape as the map it is copied from - letting the noise
+   decide the coastline used to sink whole lobes of the south and east. */
+function surfBaseHeight(x, z) {
+  const R = CONFIG.ISLAND_RADIUS;
+  const ang = Math.atan2(z, x);            // z is south, x is east
+  const d = Math.sqrt(x * x + z * z);
+  /* the reference silhouette, with a slow wobble so the coast is not the table
+     traced literally */
+  const shore = surfShoreR(ang) *
+    (1 + (fbm(x * 0.0042 + 17.3, z * 0.0042 - 4.9, 2) - 0.5) * 0.07);
+  const u = d / shore;                     // exactly 1.0 on the reference shore
+  let h = fbm(x * 0.0031 + 41.7, z * 0.0031 - 23.9, 4) * 22 - 5;
+  h += fbm(x * 0.0115 + 9.4, z * 0.0115 + 2.2, 3) * 5 - 2;
+  h += clamp(1 - d / (R * 0.75), 0, 1) * 7;
+  /* northern highlands (the hilly top half of the map) */
+  h += clamp((-z - 60) / 200, 0, 1) * 12;
+  /* the mesa Cashmere Cliffs sits on, and the low ridge by Sus Studios */
+  h += (1 - smoothstep(clamp(dist2D(x, z, -232, 168) / 118, 0, 1))) * 11;
+  h += (1 - smoothstep(clamp(dist2D(x, z, 250, 143) / 130, 0, 1))) * 6;
+  /* the land falls away towards the river before the channel is cut */
+  h -= surfRiverValley(x, z) * 8;
+  /* inland hollows are squeezed up onto a shelf so nothing but the carved
+     lake, river and creeks is ever below sea level */
+  const FLOOR = 3.6;
+  if (h < FLOOR) h = FLOOR - (FLOOR - h) * 0.10;
+  /* beach shelf just inside the outline, then the drop into the sea outside it */
+  h = lerp(h, 3.1, smoothstep(clamp((u - 0.80) / 0.20, 0, 1)));
+  h -= smoothstep(clamp((u - 1.0) / 0.11, 0, 1)) * 34;
+  return h;
+}
+/* same function with the town / landmark pads blended in, then - for Surf
+   City - the water cut back through the pads, so the river really does run
+   through downtown and the dam always holds its lake. */
 function shapedHeight(x, z) {
   let h = baseHeight(x, z);
   for (let i = 0; i < FLATS.length; i++) {
@@ -1050,6 +1735,7 @@ function shapedHeight(x, z) {
       h = lerp(h, f.y, t * 0.94);
     }
   }
+  if (World.mapId === 'surf') h -= surfCarve(x, z);
   return h;
 }
 
@@ -1103,6 +1789,25 @@ World.buildColliderGrid = function () {
   }
 };
 
+/* shortest distance from (x,z) to any road polyline segment */
+function roadDist(x, z) {
+  let best = 1e9;
+  const roads = World.roads;
+  for (let r = 0; r < roads.length; r++) {
+    const line = roads[r];
+    for (let i = 0; i < line.length - 1; i++) {
+      const ax = line[i][0], az = line[i][1];
+      const bx = line[i + 1][0], bz = line[i + 1][1];
+      const dx = bx - ax, dz = bz - az;
+      let t = ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz);
+      t = clamp(t, 0, 1);
+      const d = dist2D(x, z, ax + dx * t, az + dz * t);
+      if (d < best) best = d;
+    }
+  }
+  return best;
+}
+
 /* ---------------- terrain mesh with vertex colours ---------------- */
 function buildTerrainMesh(q) {
   const segs = q.terrainSeg;
@@ -1114,6 +1819,7 @@ function buildTerrainMesh(q) {
   const cSand = new THREE.Color(0xdccf9e), cWet = new THREE.Color(0xb0a179);
   const cGrass = new THREE.Color(0x5f8a44), cGrass2 = new THREE.Color(0x3f6a2c);
   const cRock = new THREE.Color(0x8b8b83), cDirt = new THREE.Color(0x8a7350);
+  const cRoad = new THREE.Color(0x50514e), cUrban = new THREE.Color(0x8d8b85);
   const tmp = new THREE.Color();
   for (let i = 0; i < n; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
@@ -1125,12 +1831,23 @@ function buildTerrainMesh(q) {
     if (h < -1.6) tmp.copy(cWet);
     else if (h < 2.4) tmp.copy(cSand).lerp(cWet, clamp((1.4 - h) / 3.0, 0, 1));
     else tmp.copy(cSand).lerp(cGrass, clamp((h - 2.4) / 3.2, 0, 1));
+    /* mottled canopy: broken up by noise so the island is not one flat lawn */
+    if (h > 2.4) {
+      const mot = fbm(x * 0.021 + 5.3, z * 0.021 - 8.1, 2);
+      tmp.lerp(cGrass2, clamp((mot - 0.42) * 0.85, 0, 0.5));
+    }
     if (h > 15) tmp.lerp(cGrass2, clamp((h - 15) / 16, 0, 1));
     if (slope > 0.85) tmp.lerp(cRock, clamp((slope - 0.85) / 1.5, 0, 1) * 0.85);
     for (let t = 0; t < World.towns.length; t++) {
       const tw = World.towns[t];
       const d = dist2D(x, z, tw.x, tw.z);
-      if (d < tw.r) tmp.lerp(cDirt, (1 - d / tw.r) * 0.65);
+      /* downtown gets a grey urban slab, villages get packed dirt */
+      if (d < tw.r) tmp.lerp(tw.city ? cUrban : cDirt, (1 - d / tw.r) * (tw.city ? 0.8 : 0.65));
+    }
+    /* asphalt ribbon along the road network (not underwater) */
+    if (World.roads.length && h > 0.4) {
+      const rd = roadDist(x, z);
+      if (rd < 8) tmp.lerp(cRoad, (1 - rd / 8) * 0.9);
     }
     colors[i * 3] = tmp.r; colors[i * 3 + 1] = tmp.g; colors[i * 3 + 2] = tmp.b;
   }
@@ -1191,10 +1908,24 @@ function buildWater() {
   World.group.add(mesh);
 }
 
-/* ---------------- sky dome ---------------- */
+/* ---------------- sky dome ----------------
+   The dome has to live INSIDE the camera far plane. A sphere centred on the
+   world origin with a radius past `far` is clipped away completely by WebGL,
+   which is what used to paint the sky the clear colour (black) the moment the
+   player looked up: the whole 3000 m sphere sat behind the 1600 m far plane.
+   So the radius now comes from CONFIG.SKY_RADIUS clamped under the far plane,
+   and `World.syncSky` parks the dome on the camera every frame - that is what
+   keeps the gradient centred on the viewer on foot, at 330 m in the drop and
+   behind the title screen's fly-around. */
 function buildSky() {
-  const geo = new THREE.SphereGeometry(3000, 24, 16);
+  const r = Math.min(CONFIG.SKY_RADIUS, App.camera.far * 0.85);
+  const geo = new THREE.SphereGeometry(r, 24, 16);
+  const uniforms = {
+    /* where the sun sits, so the dome can carry its glow */
+    uSunDir: { value: new THREE.Vector3(0.471, 0.814, 0.300) }
+  };
   const mat = new THREE.ShaderMaterial({
+    uniforms: uniforms,
     side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: [
       'varying vec3 vDir;',
@@ -1202,22 +1933,49 @@ function buildSky() {
       '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'
     ].join('\n'),
     fragmentShader: [
+      'uniform vec3 uSunDir;',
       'varying vec3 vDir;',
       'void main() {',
-      '  float h = clamp(vDir.y, -1.0, 1.0);',
-      '  vec3 sky = vec3(0.243, 0.510, 0.780);',
-      '  vec3 haze = vec3(0.760, 0.840, 0.880);',
-      '  vec3 col = mix(haze, sky, smoothstep(-0.02, 0.62, h));',
-      '  col = mix(col, vec3(0.86, 0.90, 0.92), smoothstep(0.10, -0.35, h));',
+      '  vec3 d = normalize(vDir);',
+      '  float h = clamp(d.y, -1.0, 1.0);',
+      /* These are raw sRGB values (this shader writes straight to the frame
+         buffer): the horizon band matches THREE.Fog(0xafc9d8) so the hazy sea
+         and the sky meet without a seam. */
+      '  vec3 zenith = vec3(0.180, 0.455, 0.800);',
+      '  vec3 haze = vec3(0.686, 0.788, 0.847);',
+      '  vec3 col = mix(haze, zenith, smoothstep(-0.02, 0.62, h));',
+      '  col = mix(col, vec3(0.560, 0.680, 0.760), smoothstep(0.12, -0.35, h));',
+      '  float sd = max(dot(d, normalize(uSunDir)), 0.0);',
+      '  col += vec3(1.0, 0.92, 0.74) * pow(sd, 42.0) * 0.55;',
+      '  col += vec3(1.0, 0.96, 0.86) * pow(sd, 8.0) * 0.10;',
       '  gl_FragColor = vec4(col, 1.0);',
       '}'
     ].join('\n')
   });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.matrixAutoUpdate = false;
+  /* the dome is not static any more - it rides with the camera - so let
+     three.js compose its matrix, and never let the frustum test drop it */
+  mesh.name = 'skyDome';
+  mesh.matrixAutoUpdate = true;
+  mesh.frustumCulled = false;
   mesh.renderOrder = -1;
+  World.sky = mesh;
   World.group.add(mesh);
 }
+
+/* Keep the dome wrapped around whatever camera is drawing. Parked at the
+   origin, the far side of the sphere falls outside the far plane and vanishes
+   (that is the black-sky bug); centred on the eye, the gradient is identical
+   from every spot on the island and at every altitude. */
+World.syncSky = function (cam) {
+  const sky = World.sky;
+  if (!sky || !cam) return;
+  sky.position.copy(cam.position);
+  /* the sun rides with the player, so aim the glow at it every frame */
+  const sun = World.sun;
+  if (sun) sky.material.uniforms.uSunDir.value
+    .subVectors(sun.position, sun.target.position).normalize();
+};
 
 /* ---------------- sun / ambient ---------------- */
 function buildLights(q) {
@@ -1261,13 +2019,20 @@ function pickSites(count, minSep, rMin, rMax, hMin, hMax) {
   return out;
 }
 /* find one site whose analytic height satisfies a predicate */
+/* the height a spawned site would stand on. Surf City counts the carved water,
+   so a landmark is never dropped in the middle of the lake. */
+function siteHeight(x, z) {
+  let h = baseHeight(x, z);
+  if (World.mapId === 'surf') h -= surfCarve(x, z);
+  return h;
+}
 function findSite(pred, minSepFromTowns) {
   let guard = 0;
   while (guard++ < 1500) {
     const a = RNG.range(0, Math.PI * 2);
     const r = RNG.range(90, 400);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    const h = baseHeight(x, z);
+    const h = siteHeight(x, z);
     if (!pred(x, z, h)) continue;
     let ok = true;
     for (let i = 0; i < FLATS.length; i++) if (dist2D(FLATS[i].x, FLATS[i].z, x, z) < minSepFromTowns) { ok = false; break; }
@@ -1311,10 +2076,136 @@ function scatterLootPoints() {
 const LANDMARK_NAMES = { plane: 'CRASH SITE', radio: 'RADIO TOWER', lighthouse: 'LIGHTHOUSE', pier: 'OLD PIER' };
 const TOWN_NAMES = ['RIVERSIDE', 'FOUNDRY', 'OLD HARBOR', 'PINE CAMP'];
 
+/* =====================================================================
+   MAP ROTATION - the island you drop into alternates every
+   CONFIG.MAP_ROTATION_MIN minutes of REAL wall-clock time (the Fortnite
+   Reload-style rotation): the classic island, then Surf City, repeat.
+   ===================================================================== */
+const MAP_DEFS = [
+  { id: 'isle', name: 'ISLE ROYALE', sub: 'the original reload island', towns: TOWN_NAMES },
+  { id: 'surf', name: 'SURF CITY', sub: 'divey dam · battlewood blvd · breaker beach',
+    towns: ['SWEATY SHORES', 'DIVEY DAM', 'BATTLEWOOD BOULEVARD',
+            'CASHMERE CLIFFS', 'SUS STUDIOS', 'BREAKER BEACH'] }
+];
+/* Surf City POIs are hand-placed (like the Reload map) instead of rolled
+   with pickSites: fixed (x, z) plus the height each town pad flattens to.
+   -z is north on the map, +x is east. */
+const SURF_CITY_SITES = [
+  { name: 'SWEATY SHORES',        x: -190, z: -100, y: 4.5, pad: 70 },   // west coast
+  { name: 'DIVEY DAM',            x: 185,  z: -120, y: 7,   pad: 70 },   // east of the lake, over the dam
+  { name: 'BATTLEWOOD BOULEVARD', x: 0,    z: 80,   y: 8,   pad: 135, city: true }, // BIG downtown, dead centre
+  { name: 'CASHMERE CLIFFS',      x: -235, z: 170,  y: 15,  pad: 70 },   // south-west mesa
+  { name: 'SUS STUDIOS',          x: 250,  z: 143,  y: 6,   pad: 70 },   // east spur, by the pond
+  { name: 'BREAKER BEACH',        x: 15,   z: 320,  y: 3.5, pad: 70 }    // south tip, at the river mouth
+];
+/* Surf City road network (like the asphalt web on the Reload map): a coastal
+   ring road that stays north of the lake and bridges the river mouth, spokes
+   into Battlewood Boulevard from every POI, a lake-shore road across to the
+   dam, river-bank service roads and a downtown street grid. Each entry is a
+   polyline of [x, z] points; the roads are tinted onto the terrain and drawn on
+   the map. Two crossings are bridges (see buildSurfBridge): the downtown ->
+   Sus Studios lane over the river and the coastal ring at the river mouth. */
+const SURF_ROADS = [
+  /* coastal ring road, inset from the beach all the way round. The south-east
+     stretch is the river mouth, carried on the second bridge. */
+  [[-265, 0], [-261, -47], [-281, -101], [-274, -158], [-209, -249],
+   [-118, -325], [0, -346], [59, -334], [118, -323], [173, -300],
+   [228, -272], [269, -226], [293, -170], [298, -108], [294, -52],
+   [270, 0], [274, 48], [295, 107], [287, 167], [248, 209], [204, 246],
+   [159, 276], [110, 303], [92, 330], [81, 342], [37, 344], [10, 340],
+   [-57, 327], [-112, 308], [-163, 283], [-212, 253], [-252, 211],
+   [-279, 161], [-296, 107], [-298, 53], [-265, 0]],
+  /* the dam: crest road across the wall, plus the spur down to Divey Dam and
+     on to the ring road */
+  [[49, -190], [110, -190], [171, -192]],
+  [[185, -120], [206, -172], [219, -224], [228, -272]],
+  /* spokes into Battlewood Boulevard from the other five POIs */
+  [[-190, -100], [-150, -60], [-80, 10], [0, 80]],                   // Sweaty Shores -> city
+  [[185, -120], [162, -58], [148, -6], [146, 44], [150, 90]],        // Divey Dam -> east bank
+  [[250, 143], [202, 116], [162, 96], [120, 92], [104, 90]],        // Sus Studios -> bridge
+  [[104, 90], [80, 90], [40, 95], [0, 80]],                          // the bridge itself -> city
+  [[15, 320], [20, 240], [10, 150], [0, 80]],                        // Breaker Beach -> city, west bank
+  [[-235, 170], [-160, 150], [-80, 110], [0, 80]],                   // Cashmere Cliffs -> city
+  /* lake-shore road: downtown north edge, along the lake's south shore to the
+     dam's west abutment */
+  [[-80, 10], [-70, -60], [-46, -120], [-14, -164], [24, -184], [49, -190]],
+  /* river-bank service roads, one each side, from downtown to Breaker Beach */
+  [[46, -30], [58, 10], [54, 50], [50, 90], [46, 130], [42, 170], [36, 210],
+   [32, 250], [30, 290], [28, 342]],
+  [[112, 90], [108, 126], [106, 160], [104, 196], [108, 232], [114, 268], [110, 303]],
+  /* west and south inland links so the interior is not one big empty field */
+  [[-235, 170], [-176, 212], [-112, 244], [-52, 268], [10, 282], [42, 280]],
+  [[-235, 170], [-212, 112], [-216, 52], [-224, -16], [-212, -70], [-190, -100]],
+  /* downtown street grid: lines run down the gaps between the city blocks */
+  [[-105, -30], [-105, 190]], [[-75, -30], [-75, 190]], [[-45, -30], [-45, 190]],
+  [[-15, -30], [-15, 190]], [[15, -30], [15, 190]], [[45, -30], [45, 190]],
+  [[-105, -25], [46, -25]], [[-105, 5], [46, 5]], [[-105, 35], [46, 35]],
+  [[-105, 65], [46, 65]], [[-105, 95], [46, 95]], [[-105, 125], [46, 125]],
+  [[-105, 155], [46, 155]], [[-105, 185], [46, 185]]
+];
+const MapRotation = {
+  slotMs() { return CONFIG.MAP_ROTATION_MIN * 60000; },
+  slotIndex(now) { return Math.floor((now === undefined ? Date.now() : now) / this.slotMs()); },
+  current(now) { return MAP_DEFS[this.slotIndex(now) % MAP_DEFS.length]; },
+  next(now) { return MAP_DEFS[(this.slotIndex(now) + 1) % MAP_DEFS.length]; },
+  msUntilNext(now) {
+    const t = now === undefined ? Date.now() : now;
+    return this.slotMs() - (t % this.slotMs());
+  },
+  /* "27:14" style countdown until the next rotation tick */
+  countdown(now) {
+    const s = Math.ceil(this.msUntilNext(now) / 1000);
+    return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+  },
+  /* menu timer: which island is live, how long until it flips, how far through
+     the slot we are, and a red warning over the last minute. Pass `now` to
+     render a specific instant (the tests do); the menu repaints it every
+     second so the countdown tracks the real wall clock. */
+  paint(now) {
+    const t = now === undefined ? Date.now() : now;
+    const line = document.getElementById('mapRotLine');
+    const cur = this.current(t), nxt = this.next(t);
+    const left = this.msUntilNext(t);
+    const soon = left <= 60000;                      // last minute: warn
+    this.paintText('mapRotName', cur.name);
+    this.paintText('mapRotNext', nxt.name);
+    this.paintText('mapRotWord', soon ? 'SWITCHING TO' : 'SWITCHES TO');
+    this.paintText('mapRotClock', this.countdown(t));
+    this.paintText('mapRotTip',
+      'the island changes every ' + CONFIG.MAP_ROTATION_MIN + ' real minutes');
+    const bar = document.getElementById('mapRotBar');
+    if (bar) bar.style.width =
+      (clamp(1 - left / this.slotMs(), 0, 1) * 100).toFixed(2) + '%';
+    if (line) line.classList.toggle('soon', soon);
+    /* the moment a slot really does roll over, flash the card and name the
+       island that just came in, so nobody misses the change */
+    if (this._shown !== cur.id) {
+      const first = this._shown === undefined;
+      this._shown = cur.id;
+      if (!first && line) {
+        line.classList.remove('flip');
+        void line.offsetWidth;                       // restart the animation
+        line.classList.add('flip');
+        clearTimeout(this._flipTimer);
+        this._flipTimer = setTimeout(function () { line.classList.remove('flip'); }, 2600);
+      }
+    }
+  },
+  paintText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+};
+
 /* ---------------- full world build ---------------- */
-World.build = function (q, seed) {
+World.build = function (q, seed, mapId) {
   World.dispose();
   World.quality = q;
+  const mapDef = MAP_DEFS.find(function (m) { return m.id === mapId; }) || MAP_DEFS[0];
+  World.mapId = mapDef.id;
+  World.mapName = mapDef.name;
+  World.townNames = mapDef.towns;
+  World.roads = mapDef.id === 'surf' ? SURF_ROADS : [];
   World.colliders.length = 0;
   World.platforms.length = 0;
   World.towns.length = 0;
@@ -1328,14 +2219,24 @@ World.build = function (q, seed) {
   World.group = new THREE.Group();
   App.scene.add(World.group);
 
-  /* 1. towns on flat-ish land, and the flatten pads they need */
-  const townSites = pickSites(CONFIG.TOWN_COUNT, 235, 120, 320, 5, 26);
-  for (let i = 0; i < townSites.length; i++) {
-    FLATS.push({ x: townSites[i].x, z: townSites[i].z, r: 66, y: townSites[i].y });
+  /* 1. towns on flat-ish land, and the flatten pads they need.
+     Surf City pins its POIs to hand-placed sites (the Reload-style layout);
+     the classic island keeps rolling them with pickSites. */
+  let townSites;
+  if (World.mapId === 'surf') {
+    townSites = SURF_CITY_SITES;
+    for (let i = 0; i < townSites.length; i++) {
+      FLATS.push({ x: townSites[i].x, z: townSites[i].z, r: townSites[i].pad, y: townSites[i].y });
+    }
+  } else {
+    townSites = pickSites(CONFIG.TOWN_COUNT, 235, 120, 320, 5, 26);
+    for (let i = 0; i < townSites.length; i++) {
+      FLATS.push({ x: townSites[i].x, z: townSites[i].z, r: 66, y: townSites[i].y });
+    }
   }
   World.spawnSpots.push({ x: 0, z: 0, w: 0.6 });
   for (let i = 0; i < townSites.length; i++) {
-    World.spawnSpots.push({ x: townSites[i].x, z: townSites[i].z, w: 3.0, name: TOWN_NAMES[i] });
+    World.spawnSpots.push({ x: townSites[i].x, z: townSites[i].z, w: 3.0, name: World.townNames[i] });
   }
 
   /* 2. landmark sites (each one also flattens a small pad) */
@@ -1358,6 +2259,11 @@ World.build = function (q, seed) {
   buildHeightmap(q.terrainSeg);
   for (let i = 0; i < townSites.length; i++) generateTown(townSites[i], i);
   generateLandmarks();
+  if (World.mapId === 'surf') {
+    buildSurfDam();
+    buildSurfBridge(80, 90, 62, 11);      // downtown -> Sus Studios lane
+    buildSurfBridge(59, 343, 52, 12);     // coastal ring road at the river mouth
+  }
   flushStaticBuckets();
   buildTerrainMesh(q);
   generateProps(q);
@@ -1391,6 +2297,7 @@ World.dispose = function () {
   World.water = null;
   World.terrain = null;
   World.sun = null;
+  World.sky = null;
   App.scene.fog = null;
 };
 
@@ -1404,29 +2311,42 @@ const WALL_C = 0xd6cdb8, WALL_C2 = 0xc3b7a0, ROOF_C = 0x6d4b3a, ROOF_C2 = 0x4d5a
       WOOD_C = 0x8a6a44, FENCE_C = 0x9c8b6b, METAL_C = 0xb9c2c6;
 
 function generateTown(site, index) {
+  const names = World.townNames || TOWN_NAMES;
+  /* Battlewood Boulevard is a dense, tall downtown grid in the middle of the
+     island instead of a small village (like the Reload map). The grid is a
+     fixed 7x7 so the street polylines in SURF_ROADS always run down the gaps
+     between the blocks. */
+  const isCity = !!site.city;
   const town = {
-    name: TOWN_NAMES[index % TOWN_NAMES.length],
-    x: site.x, z: site.z, y: World.heightAt(site.x, site.z), r: 78, buildings: []
+    name: names[index % names.length],
+    x: site.x, z: site.z, y: World.heightAt(site.x, site.z),
+    r: isCity ? 130 : 80, city: isCity, buildings: []
   };
   World.towns.push(town);
-  const cols = RNG.int(3, 3), rows = RNG.int(3, 4);
-  const block = 36;
+  const cols = isCity ? 7 : RNG.int(3, 3);
+  const rows = isCity ? 7 : RNG.int(3, 4);
+  const block = isCity ? 30 : 36;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const gx = town.x + (c - (cols - 1) / 2) * block + RNG.range(-4, 4);
       const gz = town.z + (r - (rows - 1) / 2) * block + RNG.range(-4, 4);
-      /* leave streets / plazas open */
-      if (RNG.chance(0.18)) continue;
+      /* leave streets / plazas open (fewer gaps downtown) */
+      if (RNG.chance(isCity ? 0.10 : 0.18)) continue;
       const w = RNG.range(11, 17), d = RNG.range(10, 16);
-      const floors = RNG.int(1, 2);
-      const hh = floors === 1 ? RNG.range(4.2, 5.2) : RNG.range(7.6, 9.2);
+      const floors = isCity ? RNG.int(2, 3) : RNG.int(1, 2);
+      const hh = floors === 1 ? RNG.range(4.2, 5.2)
+               : floors === 2 ? RNG.range(7.6, 9.2)
+               : RNG.range(11.5, 14.5);        // city towers
       const baseY = World.heightAt(gx, gz);
+      if (baseY < 2) continue;                 // never build in the lagoon or river
       addBuilding(gx, gz, baseY, w, d, hh, town);
     }
   }
   /* a perimeter of fences, crates and hay bales to fight around */
-  for (let i = 0; i < 26; i++) {
-    const a = RNG.range(0, Math.PI * 2), rr = RNG.range(50, 76);
+  const props = isCity ? 52 : 26;
+  for (let i = 0; i < props; i++) {
+    const a = RNG.range(0, Math.PI * 2);
+    const rr = isCity ? RNG.range(70, 130) : RNG.range(50, 76);
     const x = town.x + Math.cos(a) * rr, z = town.z + Math.sin(a) * rr;
     const y = World.heightAt(x, z);
     if (y < 2) continue;
@@ -1434,7 +2354,8 @@ function generateTown(site, index) {
     else if (RNG.chance(0.5)) addHayBale(x, z, y);
     else addFenceRun(x, z, y);
   }
-  for (let i = 0; i < CONFIG.LOOT_PER_TOWN; i++) {
+  const lootN = isCity ? CONFIG.LOOT_PER_TOWN * 3 : CONFIG.LOOT_PER_TOWN;
+  for (let i = 0; i < lootN; i++) {
     const b = town.buildings.length ? town.buildings[RNG.int(0, town.buildings.length - 1)] : null;
     let x, z;
     if (b) { x = b.x + RNG.range(-b.w * 0.32, b.w * 0.32); z = b.z + RNG.range(-b.d * 0.32, b.d * 0.32); }
@@ -1703,6 +2624,78 @@ function buildPier(c, y, ry) {
     World.lootPoints.push({ x: ex + RNG.range(-5.5, 5.5), z: ez + RNG.range(-5.5, 5.5), y: endY + 0.7 });
   }
   c.deckY = endY;
+}
+/* Surf City only: the concrete dam that gives DIVEY DAM its name. It spans
+   the river channel where the northern lake drains; the crest is a walkable
+   road with railings, spillway piers on the south face and a control tower. */
+function buildSurfDam() {
+  const cx = 110, cz = -190;             // across the lake's southern outlet
+  /* the crest sits at the height of the gorge walls so the wall spans the
+     valley instead of standing in a pit */
+  const bankY = Math.min(World.heightAt(cx - 60, cz), World.heightAt(cx + 60, cz));
+  const bedY = -26, topY = Math.max(6, Math.round(bankY) - 2), L = 110, T = 8;
+  const DAM_C = 0x9aa0a4, DAM_D = 0x878e94, GATE_C = 0x3d454b, RAIL_C = 0xc8cdd1;
+  /* main wall + walkable crest road */
+  pushBox(METAL_BUCKET, L, topY - bedY, T, cx, (bedY + topY) / 2, cz, 0, DAM_C);
+  World.addCollider(cx, cz, L / 2, T / 2, bedY, topY, true);
+  pushBox(METAL_BUCKET, L, 0.5, T + 0.6, cx, topY + 0.05, cz, 0, 0x7d848a);
+  /* railings and posts along both crest edges */
+  for (let s = -1; s <= 1; s += 2) {
+    pushBox(METAL_BUCKET, L, 0.9, 0.3, cx, topY + 0.8, cz + s * (T / 2 + 0.1), 0, RAIL_C);
+    for (let i = -6; i <= 6; i++) {
+      pushBox(METAL_BUCKET, 0.26, 1.3, 0.26, cx + i * 8, topY + 0.65, cz + s * (T / 2 + 0.1), 0, RAIL_C);
+    }
+  }
+  /* spillway piers + gates on the downstream (south) face */
+  const face = cz + T / 2;
+  for (let i = -2; i <= 2; i++) {
+    pushBox(METAL_BUCKET, 5, topY - bedY + 2, 3.5, cx + i * 20, (bedY + topY) / 2, face + 1.75, 0, DAM_D);
+    World.addCollider(cx + i * 20, face + 1.75, 2.5, 1.75, bedY, topY + 2, true);
+  }
+  for (let i = -2; i <= 1; i++) {
+    pushBox(METAL_BUCKET, 12, 10, 0.8, cx + i * 20 + 10, topY - 6, face + 0.6, 0, GATE_C);
+  }
+  /* west abutment + east control tower with a glass strip and a roof slab */
+  pushBox(METAL_BUCKET, 10, topY - bedY + 4, 14, cx - L / 2 - 4, (bedY + topY) / 2 + 1, cz, 0, DAM_D);
+  World.addCollider(cx - L / 2 - 4, cz, 5, 7, bedY, topY + 4, true);
+  pushBox(METAL_BUCKET, 9, 12, 9, cx + L / 2 + 6, topY + 6, cz, 0, DAM_C);
+  World.addCollider(cx + L / 2 + 6, cz, 4.5, 4.5, topY, topY + 12, true);
+  pushBox(METAL_BUCKET, 9.4, 2, 9.4, cx + L / 2 + 6, topY + 9.6, cz, 0, 0x9fd8e8);
+  pushBox(ROOF_BUCKET, 10.6, 1.1, 10.6, cx + L / 2 + 6, topY + 12.5, cz, 0, ROOF_C2);
+  /* crates and loot along the crest so the dam is worth fighting over */
+  addCrate(cx - 30, cz, topY);
+  addCrate(cx + 34, cz + 1, topY);
+  for (let i = 0; i < 6; i++) {
+    World.lootPoints.push({ x: cx - 44 + i * 17, z: cz + RNG.range(-2, 2), y: topY + 0.35 });
+  }
+}
+/* Surf City only: the road bridges that carry lanes over the river - the
+   downtown -> Sus Studios lane on the east side of Battlewood Boulevard and the
+   coastal ring road at the river mouth. The deck is levelled with the banks so
+   the tinted lane runs straight onto it. */
+function buildSurfBridge(cx, cz, L, W) {
+  const RAIL_C = 0xc8cdd1;
+  const bankY = Math.max(World.heightAt(cx - L / 2 - 4, cz), World.heightAt(cx + L / 2 + 4, cz));
+  const deckY = Math.max(1.8, bankY + 0.35);
+  const bedY = Math.min(World.heightAt(cx, cz), World.heightAt(cx, cz + W)) - 3;
+  /* deck + walkable platform (the road tint runs straight over it) */
+  pushBox(WOOD_BUCKET, L, 0.8, W, cx, deckY - 0.4, cz, 0, WOOD_C);
+  World.addCollider(cx, cz, L / 2, W / 2, deckY - 0.8, deckY, true);
+  /* kerbs and railings down both sides */
+  for (let s = -1; s <= 1; s += 2) {
+    pushBox(METAL_BUCKET, L, 0.42, 0.5, cx, deckY + 0.21, cz + s * (W / 2 - 0.25), 0, RAIL_C);
+    for (let i = -2; i <= 2; i++) {
+      pushBox(METAL_BUCKET, 0.24, 1.25, 0.24, cx + i * (L / 5), deckY + 0.6, cz + s * (W / 2 - 0.25), 0, RAIL_C);
+    }
+  }
+  /* piers down into the river bed */
+  for (let i = -1; i <= 1; i++) {
+    pushBox(METAL_BUCKET, 1.8, deckY - bedY, 1.8, cx + i * (L / 3), (deckY + bedY) / 2, cz, 0, METAL_C);
+  }
+  /* a couple of crates for cover mid-bridge, plus loot under it */
+  addCrate(cx - L * 0.28, cz, deckY);
+  addCrate(cx + L * 0.33, cz - 1, deckY);
+  World.lootPoints.push({ x: cx, z: cz, y: deckY + 0.35 });
 }
 /* merge the static buckets into four meshes: four draw calls for every town,
    landmark, fence, crate and hay bale on the whole map */
@@ -2501,6 +3494,28 @@ const Loot = (function () {
       if (i >= 0) items.splice(i, 1);
     },
     get count() { return items.length; },
+    /* ---------- the AI's window into the ground loot ----------
+       Bots obtain weapons through the very same ground items the player can pick
+       up, so one can never appear in a bot's hands out of thin air. */
+    /* nearest weapon item within radius of (x,z,y), or null */
+    nearestWeapon(x, z, y, radius) {
+      let best = null, bestD = radius * radius;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.item.kind !== 'weapon') continue;
+        const d = distSq2D(it.x, it.z, x, z);
+        if (d >= bestD) continue;
+        /* Close by, stay on the same floor so a gun upstairs is not picked up
+           through the ceiling; far away the height difference is just terrain,
+           so ignore it or half the island's guns look unreachable. */
+        if (d < 150 && Math.abs(it.y - y) > 2.6) continue;
+        bestD = d; best = it;
+      }
+      return best;
+    },
+    /* take an item out of the world - the AI's version of pressing E */
+    consume(it) { if (it) this.remove(it); },
+
     /* ---------- display info: name, rarity tier, colour ---------- */
     /* the merged geometry behind a ground item shape - the HUD bakes its item
        icons from these so a bar picture always matches the world model */
@@ -2560,7 +3575,15 @@ const Loot = (function () {
       const pts = World.lootPoints;
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
-        this.place(p.x, p.y + 0.25, p.z, 0);
+        /* The primary item at a point is usually a gun. With 99 bots now looting
+           for real weapons (nobody is handed one at spawn) the island has to
+           carry enough of them for everyone to arm up, so a weapon is placed
+           outright here rather than left to the general 1-in-4 roll. */
+        if (RNG.chance(0.55)) {
+          this.spawn({ kind: 'weapon', w: this.pickWeapon(0) }, p.x, p.y + 0.25, p.z);
+        } else {
+          this.place(p.x, p.y + 0.25, p.z, 0);
+        }
         if (RNG.chance(0.30)) this.place(p.x + RNG.range(-1.5, 1.5), p.y + 0.2, p.z + RNG.range(-1.5, 1.5), 0);
         if (RNG.chance(0.16)) {
           const a = RNG.pick(CONFIG.AMMO_TYPES);
@@ -2908,8 +3931,10 @@ function makeBot(i) {
     target: null, hasSeen: false, noSightT: 0, losT: RNG.range(0, 0.3),
     lastSeen: new THREE.Vector3(),
     moveTarget: { x: 0, z: 0 },
-    /* gunplay bookkeeping */
-    weaponId: 'pistol', weapons: [], mag: 0, reloadT: 0, fireT: 0, burstLeft: 0,
+    /* gunplay bookkeeping. A bot starts empty handed on purpose: `null` is the
+       natural starting value, and the only way to change it is to pick a weapon
+       up off the ground (see Bots.tryPickupWeapon). */
+    weaponId: null, weapons: [], mag: 0, reloadT: 0, fireT: 0, burstLeft: 0,
     ammoReserve: { light: 0, medium: 0, heavy: 0, shells: 0, rockets: 0 },
     inv: { bandage: 0, medkit: 0, shield: 0, nade: 0 },
     lootFindT: RNG.range(0, 8),
@@ -2996,8 +4021,41 @@ const Bots = {
     return best;
   },
   /* ---------- helpers ---------- */
+  /* Equip a weapon by picking it up off the ground. This is the ONLY way a bot
+     ever gets a gun: the item is removed from the world exactly like the player
+     pressing E on it, so nothing is granted for free. */
+  tryPickupWeapon(b) {
+    const it = Loot.nearestWeapon(b.pos.x, b.pos.z, b.pos.y, 4.0);
+    if (!it) return false;
+    const id = it.item.w;
+    const found = CONFIG.WEAPONS[id];
+    const cur = b.weaponId ? CONFIG.WEAPONS[b.weaponId] : null;
+    /* leave a gun that is no better than the one already in hand (a bot will
+       still occasionally trade for a favourite) */
+    if (cur && found.tier <= cur.tier && !RNG.chance(0.12)) return false;
+    Loot.consume(it);
+    b.weapons = [{ id: id, mag: found.mag }];
+    b.weaponId = id;
+    b.mag = found.mag;
+    b.reloadT = 0;
+    /* it also grabs the ammo it needs for the gun it just found */
+    b.ammoReserve[found.ammo] = Math.max(b.ammoReserve[found.ammo] | 0,
+      CONFIG.AMMO_PICKUP[found.ammo] * 2);
+    this.paintGun(b);
+    return true;
+  },
   /* closest static loot point the bot has not "used" yet */
   pickLootTarget(b) {
+    /* An unarmed bot beelines for the nearest gun actually lying on the ground -
+       it can see one from much further away than a building it might search. */
+    if (!b.weaponId) {
+      const gun = Loot.nearestWeapon(b.pos.x, b.pos.z, b.pos.y, 220);
+      if (gun) {
+        b.moveTarget.x = gun.x + RNG.range(-1, 1);
+        b.moveTarget.z = gun.z + RNG.range(-1, 1);
+        return;
+      }
+    }
     let best = null, bestD = 90000;
     const near = lootGrid.query(b.pos.x, b.pos.z, 90, enemyScratch);
     for (let i = 0; i < near.length; i++) {
@@ -3020,41 +4078,28 @@ const Bots = {
     b.moveTarget.x = best.x + RNG.range(-3, 3);
     b.moveTarget.z = best.z + RNG.range(-3, 3);
   },
-  /* simulate finding gear: an unarmed bot is in a hurry to find a gun, an
-     armed one looks for upgrades. Faster for skilled bots and later phases. */
+  /* Gear: weapons are picked up off the ground (tryPickupWeapon); armour, heals
+     and spare ammo are abstracted as "searching the building" so bots do not have
+     to model every single pickup. */
   upgradeGear(b, dt) {
     b.lootFindT -= dt;
     if (b.lootFindT > 0) return;
     const unarmed = !b.weaponId;
-    b.lootFindT = unarmed ? RNG.range(2.5, 6) : RNG.range(6, 16) * (1.4 - b.skill * 0.5);
-    const luck = 0.35 + b.skill * 0.5 + Zone.phase * 0.12;
-    if (RNG.chance(unarmed ? 0.9 : 0.55)) {
-      const id = Loot.pickWeapon(luck);
-      const found = CONFIG.WEAPONS[id];
-      const cur = b.weaponId ? CONFIG.WEAPONS[b.weaponId] : null;
-      if (unarmed || found.tier > cur.tier || RNG.chance(0.15)) {
-        b.weapons = [{ id: id, mag: found.mag }];
-        b.weaponId = id;
-        b.mag = found.mag;
-        b.reloadT = 0;
-        /* it also grabs the ammo it needs for its new gun */
-        b.ammoReserve[found.ammo] = Math.max(b.ammoReserve[found.ammo] | 0,
-          CONFIG.AMMO_PICKUP[found.ammo] * 3);
-        this.paintGun(b);
-      }
-    }
+    /* an unarmed bot checks for a gun on every step of its walk */
+    b.lootFindT = unarmed ? 0.8 : RNG.range(6, 16) * (1.4 - b.skill * 0.5);
+    if (unarmed || RNG.chance(0.5)) this.tryPickupWeapon(b);
     if (b.weaponId) {
       const t = CONFIG.WEAPONS[b.weaponId];
       b.ammoReserve[t.ammo] = Math.min(CONFIG.AMMO_LIMIT[t.ammo],
         (b.ammoReserve[t.ammo] | 0) + CONFIG.AMMO_PICKUP[t.ammo]);
     }
-    if (RNG.chance(0.28)) b.inv.bandage = Math.min(3, b.inv.bandage + 1);
-    if (RNG.chance(0.16)) b.inv.medkit = Math.min(2, b.inv.medkit + 1);
-    if (RNG.chance(0.18)) b.inv.shield = Math.min(2, b.inv.shield + 1);
+    if (RNG.chance(0.18)) b.inv.bandage = Math.min(3, b.inv.bandage + 1);
+    if (RNG.chance(0.09)) b.inv.medkit = Math.min(2, b.inv.medkit + 1);
+    if (RNG.chance(0.10)) b.inv.shield = Math.min(2, b.inv.shield + 1);
     if (RNG.chance(0.14)) b.inv.nade = Math.min(2, b.inv.nade + 1);
-    if (RNG.chance(0.35)) b.helmetTier = Math.min(3, Math.max(b.helmetTier, RNG.int(1, 3)));
-    if (RNG.chance(0.35)) b.vestTier = Math.min(3, Math.max(b.vestTier, RNG.int(1, 3)));
-    if (RNG.chance(0.4) && b.shield < CONFIG.MAX_SHIELD) b.shield = Math.min(CONFIG.MAX_SHIELD, b.shield + 25);
+    if (RNG.chance(0.22)) b.helmetTier = Math.min(3, Math.max(b.helmetTier, RNG.int(1, 3)));
+    if (RNG.chance(0.22)) b.vestTier = Math.min(3, Math.max(b.vestTier, RNG.int(1, 3)));
+    if (RNG.chance(0.25) && b.shield < CONFIG.MAX_SHIELD) b.shield = Math.min(CONFIG.MAX_SHIELD, b.shield + 25);
   },
   /* pick a point inside the safe circle, with per-bot jitter so they do not stack */
   pickZonePoint(b) {
@@ -3148,17 +4193,16 @@ const Bots = {
     const blocked = !World.losClear(b.pos.x, b.pos.y + 1.45, b.pos.z,
                                     enemy.pos.x, enemy.pos.y + 1.1, enemy.pos.z);
     if (blocked) {
-      /* Late game: a bot that can hear someone this close keeps pushing their
-         position, and at point-blank range it engages through cover, so the
-         final circles always resolve instead of stalling behind a wall. */
+      /* Nothing is ever shot through cover. In the last circles the bot still
+         keeps closing on the position it last saw the enemy at (which is what
+         stopped final-circle stalemates), but the line of fire itself has to be
+         clear before a single round leaves the barrel - see fireAt(). */
       if (Zone.state === 'final' || Zone.cur.r < 45) {
         b.moveTarget.x = enemy.pos.x + RNG.range(-2.5, 2.5);
         b.moveTarget.z = enemy.pos.z + RNG.range(-2.5, 2.5);
-        if (dist > 14) { b.hasSeen = false; return null; }
-      } else {
-        b.hasSeen = false;
-        return null;
       }
+      b.hasSeen = false;
+      return null;
     }
     b.target = enemy;
     b.hasSeen = true;
@@ -3314,23 +4358,36 @@ const Bots = {
     }
     b.fireT -= dt;
     if (b.fireT > 0) return;
+
+    /* muzzle: the bot's gun tip, and the line from it to the target */
+    const mx = b.pos.x + Math.sin(b.yaw) * 0.65;
+    const mz = b.pos.z - Math.cos(b.yaw) * 0.65;
+    const my = b.pos.y + (b.crouch ? 1.05 : 1.3);
+    /* A fresh line-of-sight test on every single shot. checkSight only refreshes
+       its raycast every ~0.2-0.5 s, so relying on that cache let bots shoot
+       through walls the moment cover went up between them. Blocked means the
+       shot simply does not happen: no ammo, no tracer, no sound, no damage. */
+    if (!World.losClear(mx, my, mz, tgt.pos.x, tgt.pos.y + (tgt.crouch ? 0.85 : 1.0), tgt.pos.z)) {
+      b.hasSeen = false;                       // combat() will re-acquire or reposition
+      return;
+    }
+
     if (b.burstLeft <= 0) b.burstLeft = w.auto ? RNG.int(2, 5) : 1;
     b.burstLeft--;
     b.mag--;
     b.fireT = 60 / w.rpm;
     if (b.burstLeft <= 0) b.fireT += RNG.range(0.45, 1.5) * (1.5 - b.skill * 0.6);
 
-    const mx = b.pos.x + Math.sin(b.yaw) * 0.65;
-    const mz = b.pos.z - Math.cos(b.yaw) * 0.65;
-    const my = b.pos.y + (b.crouch ? 1.05 : 1.3);
     /* aim quality: skill, distance, whether the shooter is moving, crouch bonus.
-       CONFIG.BOT_ACCURACY scales the lot so bot lethality is one tunable knob,
-       and the cap keeps even the best bot human - they miss a lot at range. */
+       CONFIG.BOT_ACCURACY (bot vs bot) and BOT_ACCURACY_PLAYER (bot vs human)
+       scale the lot, so the human's survivability is one tunable knob without
+       making the AI harmless to each other. The cap keeps bots human. */
     const base = 0.18 + b.skill * 0.34;
     const distMul = clamp(1 - dist / (w.falloffEnd * 1.15), 0.10, 1);
     const movePenalty = (b.vel.x * b.vel.x + b.vel.z * b.vel.z) > 4 ? 0.78 : 1;
+    const acc = (tgt === Player) ? CONFIG.BOT_ACCURACY_PLAYER : CONFIG.BOT_ACCURACY;
     const chance = clamp(base * (0.12 + distMul * 0.88) * movePenalty * (b.crouch ? 1.15 : 1) *
-                         CONFIG.BOT_ACCURACY, 0.02, 0.3);
+                         acc, 0.02, 0.45);
     const hit = RNG.chance(chance);
     const isHead = hit && RNG.chance(0.05 + b.skill * 0.2);
     let ex, ey, ez;
@@ -3342,6 +4399,16 @@ const Bots = {
       ey = tgt.pos.y + RNG.range(0.2, 2.0);
       ez = tgt.pos.z + Math.sin(a) * r;
     }
+    /* a miss still stops at the first wall it meets instead of sailing through
+       the building behind the target */
+    const ddx = ex - mx, ddy = ey - my, ddz = ez - mz;
+    const shotLen = Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz) || 1;
+    const wall = World.raycast(mx, my, mz, ddx / shotLen, ddy / shotLen, ddz / shotLen, shotLen);
+    if (wall.t >= 0) {
+      ex = mx + (ddx / shotLen) * wall.t;
+      ey = my + (ddy / shotLen) * wall.t;
+      ez = mz + (ddz / shotLen) * wall.t;
+    }
     FX.tracer(mx, my, mz, ex, ey, ez, 1, 0.72, 0.32, 0.07);
     _sfxPos.set(mx, my, mz);
     SFX.play(w.sound, { pos: _sfxPos, maxDist: 180, gain: 0.5 });
@@ -3349,6 +4416,8 @@ const Bots = {
       const dmg = falloffDamage(w, dist) * (isHead ? w.hs : 1) * (0.8 + b.skill * 0.3);
       Hit.damage(tgt, dmg, { head: isHead, attacker: b, weapon: w.name });
       FX.impact(ex, ey, ez, -Math.sin(b.yaw), -0.2, Math.cos(b.yaw), 'flesh');
+    } else {
+      FX.impact(ex, ey, ez, -Math.sin(b.yaw), -0.2, Math.cos(b.yaw), 'wall');
     }
   },
   /* out of ammo for everything it carries: holster it and go looking again */
@@ -4450,6 +5519,727 @@ const ItemIcons = (function () {
 })();
 
 /* =====================================================================
+   PLAYER CHARACTER - the human is a real character model. Its glTF lives
+   next to index.html and the bytes arrive one of two ways: fetch() when the
+   page is served over http(s) (or opened with local-file access allowed),
+   otherwise the base64 sidecar that tools/glb-to-b64.ps1 generates, because
+   a page opened straight off the disk may not fetch a sibling binary file
+   while <script src="..."> always loads. three's GLTFLoader comes in as a
+   classic script for the same reason (tools/build-gltfloader.ps1).
+
+   The model is normalised here - scaled to CONFIG.CHARACTER.height, centred
+   on X/Z, soles on y = 0 and facing local +Z, which is the space BotView and
+   the fallback humanoid both use - so PlayerView only has to pose it.
+
+   Bots never come through here: they keep the cheap bean (capsule) model in
+   BotView, five instanced draw calls for all of them.
+   ===================================================================== */
+const Character = (function () {
+  const state = {
+    status: 'idle',        // idle | loading | ready | failed
+    detail: '',
+    source: '',
+    meshes: 0,
+    textures: 0,
+    height: 0,
+    loadMs: 0
+  };
+  let object = null;                  // normalised root: soles on y=0, facing +Z
+  let waiters = [];
+  /* the locomotion clips are a second, much smaller sidecar (see
+     tools/fbx-bake.js). They are optional in exactly the same way the model
+     is: without them the procedural walk cycle keeps the limbs moving. */
+  const anims = {
+    status: 'idle',                   // idle | loading | ready | failed
+    detail: '',
+    clips: null,
+    bones: 0
+  };
+  let animWaiters = [];
+
+  /* ---------- bytes: fetch() first, base64 sidecar second ---------- */
+  function decodeBase64(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
+  function loadSidecar() {
+    return new Promise(function (resolve, reject) {
+      const key = CONFIG.CHARACTER.base64Global;
+      if (window[key]) { resolve(window[key]); return; }
+      const tag = document.createElement('script');
+      tag.src = CONFIG.CHARACTER.base64File;
+      tag.onload = function () {
+        if (window[key]) resolve(window[key]);
+        else reject(new Error(CONFIG.CHARACTER.base64File + ' did not define window.' + key));
+      };
+      tag.onerror = function () { reject(new Error('cannot load ' + CONFIG.CHARACTER.base64File)); };
+      document.head.appendChild(tag);
+    });
+  }
+  function loadBytes() {
+    /* A file:// page cannot fetch() a sibling file - the browser refuses it and
+       logs a CORS error we cannot catch - so go straight to the base64 sidecar
+       there and keep the console clean. Served over http(s) the raw .glb is the
+       cheaper path and is tried first. */
+    if (location.protocol === 'file:') {
+      state.source = CONFIG.CHARACTER.base64File;
+      return loadSidecar().then(decodeBase64);
+    }
+    return fetch(CONFIG.CHARACTER.file).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      state.source = CONFIG.CHARACTER.file;
+      return res.arrayBuffer();
+    }).catch(function () {
+      /* any other fetch failure: fall back to the sidecar */
+      state.source = CONFIG.CHARACTER.base64File;
+      return loadSidecar().then(decodeBase64);
+    });
+  }
+  /* ---------- the locomotion clips ----------
+     The baked walk/run tables are a second sidecar. A plain <script src> is
+     the one load a file:// page is always allowed, so it is pulled in that way
+     no matter how the page was opened and it can never stall the boot. The
+     data is checked before it goes anywhere near the rig: anything that is not
+     the expected shape is reported and ignored, which leaves the procedural
+     walk cycle running. */
+  function validateAnims(data) {
+    if (!data || typeof data !== 'object' || !data.clips) return 'no clip table';
+    for (const id of ['walk', 'run']) {
+      const c = data.clips[id];
+      if (!c || !c.frames || !c.bones) return 'no ' + id + ' cycle';
+      const want = c.frames * 3;
+      for (const name of Object.keys(c.bones)) {
+        const track = c.bones[name];
+        if (!track || track.length !== want) {
+          return id + '.' + name + ' carries ' + (track ? track.length : 0) + ' of ' + want + ' values';
+        }
+      }
+    }
+    return '';
+  }
+  function settleAnims(clips, detail) {
+    anims.status = clips ? 'ready' : 'failed';
+    anims.detail = detail || '';
+    anims.clips = clips;
+    anims.bones = clips ? Object.keys(clips.clips.walk.bones).length : 0;
+    const idle = animWaiters;
+    animWaiters = [];
+    for (let i = 0; i < idle.length; i++) idle[i](clips);
+    if (clips) {
+      const w = clips.clips.walk, r = clips.clips.run;
+      console.log('[character] locomotion clips ready: walk ' + w.frames + ' frames / ' +
+        w.duration.toFixed(2) + ' s, run ' + r.frames + ' frames / ' + r.duration.toFixed(2) +
+        ' s, ' + anims.bones + ' hinges each (' + CONFIG.CHARACTER.anims.file + ')');
+    } else {
+      console.warn('[character] no locomotion clips (' + anims.detail + ') - the player keeps the ' +
+        'procedural walk cycle. Generate ' + CONFIG.CHARACTER.anims.file + ' with ' +
+        'node tools/fbx-bake.js.');
+    }
+    return clips;
+  }
+  function loadAnims() {
+    if (anims.status === 'ready') return Promise.resolve(anims.clips);
+    if (anims.status === 'failed') return Promise.resolve(null);
+    if (anims.status === 'loading') return new Promise(function (r) { animWaiters.push(r); });
+    if (!CONFIG.CHARACTER.anims.enabled) {
+      anims.status = 'failed';
+      anims.detail = 'switched off in CONFIG.CHARACTER.anims';
+      return Promise.resolve(null);
+    }
+    anims.status = 'loading';
+    return new Promise(function (resolve) {
+      const key = CONFIG.CHARACTER.anims.global;
+      const tag = document.createElement('script');
+      tag.src = CONFIG.CHARACTER.anims.file;
+      tag.onload = function () {
+        const bad = validateAnims(window[key]);
+        resolve(settleAnims(bad ? null : window[key], bad));
+      };
+      tag.onerror = function () {
+        resolve(settleAnims(null, 'cannot load ' + CONFIG.CHARACTER.anims.file));
+      };
+      document.head.appendChild(tag);
+    });
+  }
+
+  /* ---------- measure, scale, re-origin ----------
+     glTF is metres and Y-up by convention, but exports arrive in any scale or
+     orientation, so nothing is assumed: the loaded scene is measured and
+     rebuilt around its own feet. */
+  function normalise(root) {
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const s = CONFIG.CHARACTER.height / Math.max(0.001, size.y);
+    root.scale.setScalar(s);
+    root.position.set(-(box.min.x + box.max.x) * 0.5 * s, -box.min.y * s,
+                      -(box.min.z + box.max.z) * 0.5 * s);
+    const holder = new THREE.Group();
+    holder.name = 'characterModel';
+    /* a model authored facing -Z is flipped with CONFIG.CHARACTER.yawTurn, and
+       the holder spins about the soles so the re-origin stays valid */
+    if (CONFIG.CHARACTER.yawTurn) holder.rotation.y = CONFIG.CHARACTER.yawTurn;
+    holder.add(root);
+
+    const cast = !!(World.quality && World.quality.shadows);
+    const maps = [];
+    root.traverse(function (o) {
+      if (!o.isMesh) return;
+      state.meshes++;
+      o.castShadow = cast;
+      o.receiveShadow = false;
+      o.frustumCulled = false;          // the camera is always right behind it
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (let i = 0; i < mats.length; i++) {
+        const m = mats[i];
+        if (!m) continue;
+        /* the file marks every material double sided (an FBX export habit); a
+           closed character does not need it, and one-sided halves the shading
+           work on the model the player stares at all match */
+        if (m.side === THREE.DoubleSide && m.name !== 'FLightup') m.side = THREE.FrontSide;
+        if (m.map && maps.indexOf(m.map) === -1) maps.push(m.map);
+      }
+    });
+    state.textures = maps.length;
+    state.height = CONFIG.CHARACTER.height;
+    object = holder;
+    return holder;
+  }
+
+  /* ---------- load - idempotent, everybody shares the one load ---------- */
+  function load() {
+    /* the clips are independent of the model and about a thirtieth of its
+       size, so both loads run side by side from the first call */
+    loadAnims();
+    if (state.status === 'ready') return Promise.resolve(object);
+    if (state.status === 'failed') return Promise.resolve(null);
+    if (state.status === 'loading') {
+      return new Promise(function (resolve) { waiters.push(resolve); });
+    }
+    if (!CONFIG.CHARACTER.enabled) {
+      state.status = 'failed';
+      state.detail = 'switched off in CONFIG.CHARACTER';
+      return Promise.resolve(null);
+    }
+    if (!THREE.GLTFLoader) {
+      state.status = 'failed';
+      state.detail = 'vendor/GLTFLoader.js did not load';
+      console.warn('[character] ' + state.detail + ' - the player keeps the built-in humanoid');
+      return Promise.resolve(null);
+    }
+    state.status = 'loading';
+    const t0 = (window.performance || Date).now();
+    return loadBytes().then(function (buffer) {
+      return new Promise(function (resolve, reject) {
+        new THREE.GLTFLoader().parse(buffer, '', resolve, reject);
+      });
+    }).then(function (gltf) {
+      const holder = normalise(gltf.scene || (gltf.scenes && gltf.scenes[0]));
+      state.loadMs = Math.round((window.performance || Date).now() - t0);
+      state.status = 'ready';
+      const idle = waiters; waiters = [];
+      for (let i = 0; i < idle.length; i++) idle[i](holder);
+      console.log('[character] ' + CONFIG.CHARACTER.name + ' ready in ' + state.loadMs +
+        ' ms from ' + state.source + ' - ' + state.meshes + ' mesh(es), ' + state.textures +
+        ' texture(s), ' + state.height.toFixed(2) + ' m tall');
+      return holder;
+    }).catch(function (err) {
+      state.status = 'failed';
+      state.detail = (err && err.message) ? err.message : String(err);
+      const idle = waiters; waiters = [];
+      for (let i = 0; i < idle.length; i++) idle[i](null);
+      console.warn('[character] could not load ' + CONFIG.CHARACTER.file + ' (' + state.detail +
+        ') - the player keeps the built-in humanoid. Keep ' + CONFIG.CHARACTER.file + ' and ' +
+        CONFIG.CHARACTER.base64File + ' next to index.html.');
+      return null;
+    });
+  }
+
+  return {
+    state: state,
+    load: load,
+    model() { return object; },
+    /* the locomotion sidecar: state/* for the loader report, loadAnims() for
+       whoever wants to know when the rig can actually use the cycles */
+    anims: anims,
+    loadAnims: loadAnims,
+    /* one line for the start screen: the credit doubles as a load report */
+    report() {
+      if (state.status === 'ready') {
+        return 'You play as ' + CONFIG.CHARACTER.name + ' ' + CONFIG.CHARACTER.credit;
+      }
+      if (state.status === 'failed') {
+        return 'Character model unavailable (' + state.detail + ') - playing the default humanoid. ' +
+               'Keep ' + CONFIG.CHARACTER.file + ' next to index.html.';
+      }
+      return 'Loading ' + CONFIG.CHARACTER.name + ' ...';
+    }
+  };
+})();
+
+/* =====================================================================
+   PLAYER CHARACTER RIG - the character file is one static mesh: no
+   skeleton and no animation clips (Freddy ships like that). He is an
+   animatronic though, so the body is really a pile of separate rigid
+   pieces - shells, joint balls, the hat, the eyes - and this rig puts those
+   pieces back on hinges: hips, knees, shoulders, elbows, neck. The pieces
+   are found by cutting the geometry into connected islands and sorting each
+   island into a limb by where it sits in the body, so the walk cycle swings
+   real legs and arms instead of sliding a statue around.
+
+   The cycles themselves come from the two Mixamo FBX clips in the locomotion
+   sidecar (tools/fbx-bake.js retargets them onto exactly these hinges). They
+   drive the limbs whenever the player is really moving; the procedural cycle
+   below still runs the idle, the crouch and the glide, and it is the only
+   thing that moves him when the sidecar is missing.
+   ===================================================================== */
+const CharacterRig = (function () {
+  /* Joint heights as fractions of the character's height, measured off the
+     loaded model (a bear build: short legs, long arms, a big head). Anything
+     the classifier cannot place stays with the torso, so a swapped-in model
+     still rigs up without falling apart. */
+  const J = {
+    neck: 0.760,              // everything above this that is not an arm is head
+    shoulder: 0.720,          // shoulder hinge
+    elbow: 0.600,
+    wrist: 0.500,
+    above: 0.420,             // arms live above this line, legs below it
+    hip: 0.390,               // hip hinge
+    knee: 0.230,
+    ankle: 0.090,
+    limbX: 0.097,             // further out than this from the centre = an arm
+    legX: 0.050,              // ... and further out than this = a leg
+    minPieces: 4              // ignore slivers (a few triangles) when measuring
+  };
+
+  /* ---------- locomotion clips ----------
+     character.anims.clips holds the baked tables: for every hinge, Euler XYZ
+     (radians) per frame. One normalised phase drives both cycles so a
+     walk-to-run cross-fade never lands the two strides out of step. */
+  let CLIPS = null;
+  /* which hinges the clip is allowed to drive: the spine, the head and the
+     legs always follow it; the arms only while he is not holding a gun,
+     because the aiming pose is what the gun model is built around */
+  const CLIP_BODY = ['torso', 'head', 'hipL', 'kneeL', 'footL', 'hipR', 'kneeR', 'footR'];
+  const CLIP_ARMS = ['shoulderL', 'elbowL', 'handL', 'shoulderR', 'elbowR', 'handR'];
+
+  function setClips(data) {
+    /* Either shape is accepted: the parsed sidecar as a whole ({fps, clips:{}}) -
+       which is what Character.loadAnims() hands over - or the clip table itself
+       ({walk, run}). Vetting the two clips is what actually decides. */
+    const c = (data && data.clips) ? data.clips : data;
+    CLIPS = (c && c.walk && c.run && c.walk.frames > 1 && c.run.frames > 1) ? c : null;
+    return !!CLIPS;
+  }
+  /* linear sample of one hinge's track at a 0..1 phase - the cycle wraps */
+  function sampleTrack(clip, name, phase, out) {
+    const track = clip.bones[name];
+    if (!track) return false;
+    const n = clip.frames;
+    const p = (phase % 1 + 1) % 1 * n;
+    const i0 = Math.floor(p) % n, f = p - Math.floor(p), i1 = (i0 + 1) % n;
+    const a = i0 * 3, b = i1 * 3;
+    out[0] = track[a] + (track[b] - track[a]) * f;
+    out[1] = track[a + 1] + (track[b + 1] - track[a + 1]) * f;
+    out[2] = track[a + 2] + (track[b + 2] - track[a + 2]) * f;
+    return true;
+  }
+  function sampleScalar(arr, phase) {
+    const n = arr.length;
+    if (!n) return 0;
+    const p = (phase % 1 + 1) % 1 * n;
+    const i0 = Math.floor(p) % n, f = p - Math.floor(p), i1 = (i0 + 1) % n;
+    return arr[i0] + (arr[i1] - arr[i0]) * f;
+  }
+  /* the two cycles blended by the walk/run share, written into `out` */
+  const CLIP_TMP2 = [0, 0, 0];
+  function sampleBoth(name, loco, out) {
+    const ok = sampleTrack(CLIPS.walk, name, loco.phase, out);
+    if (loco.run > 0.001 && sampleTrack(CLIPS.run, name, loco.phase, CLIP_TMP2)) {
+      out[0] += (CLIP_TMP2[0] - out[0]) * loco.run;
+      out[1] += (CLIP_TMP2[1] - out[1]) * loco.run;
+      out[2] += (CLIP_TMP2[2] - out[2]) * loco.run;
+    }
+    return ok;
+  }
+
+  /* ---------- connected islands ----------
+     Two vertices are part of the same piece when a triangle touches both.
+     These models are rigid pieces butted together with no shared vertices
+     across a joint, so this recovers the original part list. */
+  function analyse(geo) {
+    const pos = geo.attributes.position;
+    const vcount = pos.count;
+    let index = geo.index ? geo.index.array : null;
+    if (!index) {
+      index = new Uint32Array(vcount);
+      for (let i = 0; i < vcount; i++) index[i] = i;
+    }
+    const parent = new Int32Array(vcount);
+    for (let i = 0; i < vcount; i++) parent[i] = i;
+    function find(a) { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; }
+    const tris = (index.length / 3) | 0;
+    for (let t = 0; t < tris; t++) {
+      const a = find(index[t * 3]);
+      const b = find(index[t * 3 + 1]);
+      const c = find(index[t * 3 + 2]);
+      if (a !== b) parent[b] = a;
+      if (a !== c) parent[c] = a;
+    }
+    const map = new Map();
+    for (let v = 0; v < vcount; v++) {
+      const r = find(v);
+      let isl = map.get(r);
+      if (!isl) {
+        isl = { verts: [], tris: [], n: 0, cx: 0, cy: 0, cz: 0,
+                lo: [Infinity, Infinity, Infinity], hi: [-Infinity, -Infinity, -Infinity] };
+        map.set(r, isl);
+      }
+      isl.verts.push(v);
+      isl.n++;
+      isl.cx += pos.getX(v); isl.cy += pos.getY(v); isl.cz += pos.getZ(v);
+      isl.lo[0] = Math.min(isl.lo[0], pos.getX(v)); isl.hi[0] = Math.max(isl.hi[0], pos.getX(v));
+      isl.lo[1] = Math.min(isl.lo[1], pos.getY(v)); isl.hi[1] = Math.max(isl.hi[1], pos.getY(v));
+      isl.lo[2] = Math.min(isl.lo[2], pos.getZ(v)); isl.hi[2] = Math.max(isl.hi[2], pos.getZ(v));
+    }
+    for (let t = 0; t < tris; t++) map.get(find(index[t * 3])).tris.push(t);
+    const list = [];
+    map.forEach(function (isl) {
+      isl.cx /= isl.n; isl.cy /= isl.n; isl.cz /= isl.n;
+      isl.triCount = isl.tris.length;
+      list.push(isl);
+    });
+    return { list: list, index: index };
+  }
+
+  /* ---------- which limb is this piece part of? ---------- */
+  function classify(isl, H) {
+    const x = isl.cx, y = isl.cy, ax = Math.abs(x), side = x < 0 ? 'L' : 'R';
+    if (y > J.neck * H && ax < 0.30 * H) return 'head';
+    if (ax >= J.limbX * H && y <= J.shoulder * H) {
+      if (y > J.elbow * H) return 'shoulder' + side;
+      if (y > J.wrist * H) return 'elbow' + side;
+      return 'hand' + side;
+    }
+    if (y <= J.above * H && ax >= J.legX * H) {
+      if (y > J.knee * H) return 'hip' + side;
+      if (y > J.ankle * H) return 'knee' + side;
+      return 'foot' + side;
+    }
+    return 'torso';
+  }
+  /* ---------- copies one island's triangles into flat arrays ---------- */
+  function emit(p, out) {
+    const geo = p.geo;
+    const pos = geo.attributes.position, nor = geo.attributes.normal, uv = geo.attributes.uv;
+    const nrm = new THREE.Matrix3().getNormalMatrix(p.m);
+    const v = new THREE.Vector3();
+    for (let t = 0; t < p.tris.length; t++) {
+      const tri = p.tris[t];
+      for (let k = 0; k < 3; k++) {
+        const i = p.index[tri * 3 + k];
+        v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(p.m);
+        out.pos.push(v.x, v.y, v.z);
+        if (nor) {
+          v.set(nor.getX(i), nor.getY(i), nor.getZ(i)).applyMatrix3(nrm).normalize();
+          out.nor.push(v.x, v.y, v.z);
+        } else out.nor.push(0, 1, 0);
+        if (uv) out.uv.push(uv.getX(i), uv.getY(i)); else out.uv.push(0, 0);
+      }
+    }
+    out.tris += p.tris.length;
+  }
+
+  /* ---------- build ----------
+     Everything works in the holder's space: soles on y = 0, forward = +Z,
+     height = H - the space PlayerView already poses. */
+  function build(holder, H) {
+    holder.updateWorldMatrix(true, true);
+    const toLocal = new THREE.Matrix4().copy(holder.matrixWorld).invert();
+    const sources = [];
+    holder.traverse(function (o) { if (o.isMesh && o.visible) sources.push(o); });
+    if (!sources.length) return null;
+
+    const pieces = [];
+    for (let i = 0; i < sources.length; i++) {
+      const mesh = sources[i];
+      const geo = mesh.geometry;
+      if (!geo || !geo.attributes.position) continue;
+      const m = new THREE.Matrix4().copy(toLocal).multiply(mesh.matrixWorld);
+      const found = analyse(geo);
+      for (let k = 0; k < found.list.length; k++) {
+        const isl = found.list[k];
+        isl.p = new THREE.Vector3(isl.cx, isl.cy, isl.cz).applyMatrix4(m);
+        isl.bone = classify({ cx: isl.p.x, cy: isl.p.y, cz: isl.p.z }, H);
+        isl.geo = geo;
+        isl.index = found.index;
+        isl.mat = mesh.material;
+        isl.m = m;
+        pieces.push(isl);
+      }
+    }
+    if (!pieces.length) return null;
+    /* slivers (a handful of triangles) must not decide where a joint goes */
+    const big = pieces.filter(function (p) { return p.triCount >= J.minPieces; });
+
+    /* ---------- where the hinges go ----------
+       Measured from the pieces themselves: the outermost piece at the
+       shoulder height gives the shoulder x, the piece nearest the elbow
+       height gives the elbow x, and so on. Falls back to the proportions in
+       J when a bone found nothing to measure. */
+    const sides = ['L', 'R'];
+    const measure = function (side) {
+      const sgn = side === 'L' ? -1 : 1;
+      let sx = 0.130 * H, ex = 0.200 * H, hx = 0.290 * H, lx = 0.070 * H;
+      let topY = -Infinity, elbowNear = Infinity, handY = Infinity, lxSum = 0, lxN = 0;
+      for (let i = 0; i < big.length; i++) {
+        const p = big[i], ax = Math.abs(p.p.x), bone = p.bone;
+        if (bone === 'shoulder' + side || bone === 'elbow' + side) {
+          const d = Math.abs(p.p.y - J.elbow * H);
+          if (d < elbowNear) { elbowNear = d; ex = ax; }
+        }
+        if (bone === 'shoulder' + side && p.p.y > topY) { topY = p.p.y; sx = ax; }
+        if (bone === 'hand' + side && p.p.y < handY) { handY = p.p.y; hx = ax; }
+        if (bone === 'hip' + side || bone === 'knee' + side || bone === 'foot' + side) { lxSum += ax; lxN++; }
+      }
+      if (lxN >= 3) lx = lxSum / lxN;
+      ex = clamp(ex, sx * 0.9, hx);
+      return {
+        shoulder: new THREE.Vector3(sgn * sx, J.shoulder * H, 0),
+        elbow: new THREE.Vector3(sgn * ex, J.elbow * H, 0),
+        hand: new THREE.Vector3(sgn * hx, J.wrist * H, 0),
+        hip: new THREE.Vector3(sgn * lx, J.hip * H, 0),
+        knee: new THREE.Vector3(sgn * lx, J.knee * H, 0),
+        foot: new THREE.Vector3(sgn * lx, J.ankle * H, 0)
+      };
+    };
+
+    /* ---------- the hinge tree ---------- */
+    const root = new THREE.Group();
+    root.name = 'playerCharacterRig';
+    const bones = {}, piv = {};
+    const addBone = function (name, parentName, p) {
+      const g = new THREE.Group();
+      g.name = 'bone_' + name;
+      g.position.copy(p);
+      if (parentName) {
+        g.position.sub(piv[parentName]);      // bones are positioned in parent space
+        bones[parentName].add(g);
+      } else root.add(g);
+      bones[name] = g;
+      piv[name] = p;
+    };
+    addBone('torso', null, new THREE.Vector3(0, J.hip * H, 0));
+    addBone('head', 'torso', new THREE.Vector3(0, J.neck * H, 0));
+    for (let s = 0; s < 2; s++) {
+      const side = sides[s], mm = measure(side);
+      addBone('shoulder' + side, 'torso', mm.shoulder);
+      addBone('elbow' + side, 'shoulder' + side, mm.elbow);
+      addBone('hand' + side, 'elbow' + side, mm.hand);
+      addBone('hip' + side, 'torso', mm.hip);
+      addBone('knee' + side, 'hip' + side, mm.knee);
+      addBone('foot' + side, 'knee' + side, mm.foot);
+    }
+    /* ---------- hang the pieces on the hinges ----------
+       Pieces that share a hinge and a material are merged into one mesh, so
+       the whole character costs about a dozen draw calls rather than one per
+       piece. */
+    const buckets = new Map();
+    for (let i = 0; i < pieces.length; i++) {
+      const p = pieces[i];
+      const key = p.bone + '|' + ((p.mat && p.mat.uuid) || 'm');
+      let b = buckets.get(key);
+      if (!b) { b = { bone: p.bone, mat: p.mat, pos: [], nor: [], uv: [], tris: 0, pieces: 0 }; buckets.set(key, b); }
+      emit(p, b);
+      b.pieces++;
+    }
+    const cast = !!(World.quality && World.quality.shadows);
+    const counts = {};
+    let meshCount = 0, triCount = 0;
+    buckets.forEach(function (b) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3));
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(b.nor, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+      geo.computeBoundingSphere();
+      const mesh = new THREE.Mesh(geo, b.mat);
+      mesh.name = 'rig_' + b.bone;
+      mesh.castShadow = cast;
+      mesh.receiveShadow = false;
+      /* the vertices are in character space, so counter the bone's own
+         position: from there the mesh swings about its hinge */
+      mesh.position.copy(piv[b.bone]).multiplyScalar(-1);
+      bones[b.bone].add(mesh);
+      counts[b.bone] = (counts[b.bone] || 0) + b.pieces;
+      meshCount++;
+      triCount += b.tris;
+    });
+    /* the one-piece static version is not needed any more */
+    for (let i = 0; i < sources.length; i++) {
+      const mesh = sources[i];
+      if (mesh.parent) mesh.parent.remove(mesh);
+      if (mesh.geometry) mesh.geometry.dispose();
+    }
+    holder.add(root);
+    return {
+      root: root, bones: bones, pivots: piv, counts: counts,
+      height: H, pieces: pieces.length, meshes: meshCount, triangles: triCount,
+      /* locomotion state: the clip phase and its blend weights (loco), and the
+         eased arm pose the procedural cycle uses (ease) */
+      loco: { phase: 0, weight: 0, run: 0, bob: 0, rate: 0 },
+      ease: null
+    };
+  }
+  /* ---------- the clip clock ----------
+     Speed decides everything: how much of the body the baked cycle owns, which
+     of the two cycles it is, and how fast they play. One phase drives both, so
+     a walk-to-run cross-fade never lands the two strides out of step, and the
+     cadence is clamped so a creep or a flat-out sprint does not leave the legs
+     looking sped-up. */
+  function advanceLoco(rig, o) {
+    const A = CONFIG.CHARACTER.anims;
+    const loco = rig.loco;
+    const dt = o.dt || 0.016;
+    const speed = Math.max(0, o.speed || 0);
+    let want = CLIPS ? clamp(speed / A.blend, 0, 1) : 0;
+    if (o.airborne) want = 0;                     // the glide pose owns the body
+    else if (o.crouch) want *= A.crouch;          // ... and a crouch keeps its knees
+    loco.weight += (want - loco.weight) * (1 - Math.exp(-9 * dt));
+    const runWant = clamp((speed - A.runFrom) / Math.max(0.001, A.runFull - A.runFrom), 0, 1);
+    loco.run += (runWant - loco.run) * (1 - Math.exp(-6 * dt));
+    loco.rate = clamp(speed / A.stride, A.rateMin, A.rateMax);
+    if (loco.weight > 0.01 && speed > 0.05) loco.phase = (loco.phase + loco.rate * dt) % 1;
+    /* the bounce is the clip's own hips: PlayerView reads it off here */
+    loco.bob = (CLIPS && loco.weight > 0)
+      ? sampleScalar(CLIPS.walk.bob, loco.phase) * (1 - loco.run) +
+        sampleScalar(CLIPS.run.bob, loco.phase) * loco.run
+      : 0;
+    return loco;
+  }
+
+  const CLIP_TMP = [0, 0, 0];
+  /* ---------- the cycle on top of the pose ----------
+     Spine, head and legs always follow it; the arms follow it too unless he is
+     holding a gun, because the aiming pose is what the gun in front of his
+     chest is built around. */
+  function applyClip(rig, o, w) {
+    const b = rig.bones, loco = rig.loco;
+    for (let i = 0; i < CLIP_BODY.length; i++) {
+      const name = CLIP_BODY[i];
+      if (!sampleBoth(name, loco, CLIP_TMP)) continue;
+      b[name].rotation.x += CLIP_TMP[0] * w;
+      b[name].rotation.y += CLIP_TMP[1] * w;
+      b[name].rotation.z += CLIP_TMP[2] * w;
+    }
+    const armW = o.armed ? 0 : w;
+    if (armW <= 0) return;
+    for (let i = 0; i < CLIP_ARMS.length; i++) {
+      const name = CLIP_ARMS[i];
+      if (!sampleBoth(name, loco, CLIP_TMP)) continue;
+      b[name].rotation.x += CLIP_TMP[0] * armW;
+      b[name].rotation.y += CLIP_TMP[1] * armW;
+      b[name].rotation.z += CLIP_TMP[2] * armW;
+    }
+  }
+
+
+  /* ---------- posing ----------
+     phase drives the procedural stride (PlayerView's walkPhase), o describes
+     the state: move 0..1, speed (m/s), airborne, glider (the canopy is out),
+     crouch, armed, turn (aim
+     lean), look (camera pitch), time and dt. Poses are eased so the change
+     between walking, aiming and flying never snaps. Whatever share of the
+     stride the baked cycle is not carrying is left to the sine cycle below,
+     which is also all there is when the sidecar did not load. */
+  function pose(rig, phase, o) {
+    const b = rig.bones;
+    const move = clamp(o.move || 0, 0, 1);
+    const air = o.airborne ? 1 : 0;
+    const crouch = o.crouch ? 1 : 0;
+    const t = o.time || 0;
+    const loco = advanceLoco(rig, o);
+    const clip = CLIPS ? loco.weight : 0;
+    const own = 1 - clip;                       // the procedural cycle's share
+    const sa = Math.sin(phase), sb = Math.sin(phase + Math.PI);
+    const breathe = Math.sin(t * 1.7) * 0.012 * (1 - move);
+
+    /* ---- legs: the hip swings the whole leg, the knee only ever folds
+       backwards, so the shin never passes through the thigh ---- */
+    const legAmp = 0.62 * move * own;
+    /* Every axis the baked cycle is allowed to add to is written from scratch
+       with rotation.set(). The cycle is *added* to the pose further down (see
+       applyClip), so a component that is only ever incremented - the legs' yaw
+       and roll, the head's roll - integrates its own clip contribution frame
+       after frame and windmills the limb (the head lolling about like a corpse
+       while the feet stop striding). */
+    b.hipL.rotation.set(sa * legAmp - crouch * 0.55 - air * 0.35, 0, 0);
+    b.hipR.rotation.set(sb * legAmp - crouch * 0.55 - air * 0.30, 0, 0);
+    b.kneeL.rotation.set(Math.max(0, Math.sin(phase + 1.15)) * (0.85 * move * own) + crouch * 1.10 + air * 0.85, 0, 0);
+    b.kneeR.rotation.set(Math.max(0, Math.sin(phase + Math.PI + 1.15)) * (0.85 * move * own) + crouch * 1.10 + air * 0.75, 0, 0);
+    b.footL.rotation.set(-sa * legAmp * 0.35 - air * 0.35, 0, 0);
+    b.footR.rotation.set(-sb * legAmp * 0.35 - air * 0.35, 0, 0);
+
+    /* ---- arms: swing opposite the same-side leg. Holding a gun pins them
+       into an aiming pose (right hand on the grip, left under the fore end),
+       which is where the gun model in front of the chest sits. ---- */
+    const armAmp = 0.55 * move * own;
+    let upL = -sa * armAmp - 0.02, upR = -sb * armAmp - 0.02;
+    let elL = -0.20 - Math.max(0, sa) * 0.20 * move, elR = -0.20 - Math.max(0, sb) * 0.20 * move;
+    let tuckL = 0.34, tuckR = -0.34;              // pull the A-pose arms in
+    if (o.armed) {
+      upL = -1.00; elL = -0.95; tuckL = 0.46;
+      upR = -1.30; elR = -0.28; tuckR = -0.28;
+    }
+    if (air) {
+      /* The canopy puts both hands overhead on the risers. Freefall must not
+         copy that: arms straight up read as being yanked off the ground, and
+         they cross in front of the head. Spread them out to the sides instead -
+         the classic skydive arch - and let the legs trail. */
+      if (o.glider) { upL = upR = -2.10; elL = elR = -0.25; tuckL = 0.12; tuckR = -0.12; }
+      else { upL = upR = -0.42; elL = elR = -0.34; tuckL = 1.05; tuckR = -1.05; }
+    }
+    if (crouch) { upL -= 0.16; upR -= 0.16; }
+    /* The eased arm pose lives on the rig rather than on the bone: the baked
+       cycle is added to the result further down, and an ease that read the
+       bone back would feed its own clip contribution into the next frame. */
+    const ease = 1 - Math.exp(-14 * (o.dt || 0.016));
+    const es = rig.ease || (rig.ease = { slx: upL, slz: tuckL, srx: upR, srz: tuckR, elx: elL, erx: elR });
+    es.slx += (upL - es.slx) * ease; es.slz += (tuckL - es.slz) * ease;
+    es.srx += (upR - es.srx) * ease; es.srz += (tuckR - es.srz) * ease;
+    es.elx += (elL - es.elx) * ease; es.erx += (elR - es.erx) * ease;
+    b.shoulderL.rotation.set(es.slx, 0, es.slz);
+    b.shoulderR.rotation.set(es.srx, 0, es.srz);
+    b.elbowL.rotation.set(es.elx, 0, 0);
+    b.elbowR.rotation.set(es.erx, 0, 0);
+    b.handL.rotation.set(-0.08 + sa * 0.08 * move * own, 0, 0);
+    b.handR.rotation.set(-0.08 + sb * 0.08 * move * own, 0, 0);
+
+    /* ---- spine and head: a forward lean with speed, a breath when idle, the
+       shoulders leading the aim, and the head tracking where you are looking */
+    b.torso.rotation.set(0.05 * move + crouch * 0.10 - air * 0.10 + breathe,
+                         -(o.turn || 0) * CONFIG.CHARACTER.turnLead,
+                         sa * 0.05 * move * own);
+    b.torso.scale.y = 1 + breathe * 1.6;
+    b.head.rotation.set(clamp((o.look || 0) * 0.45, -0.55, 0.45) - air * 0.12,
+                       -(o.turn || 0) * 0.30 - sa * 0.05 * move * own,
+                       0);
+
+    /* ---- and the baked cycle over the top of all of it ---- */
+    if (clip > 0) applyClip(rig, o, clip);
+    return loco;
+  }
+
+  return {
+    joints: J, build: build, pose: pose,
+    /* the baked locomotion tables: setClips() takes (and vets) the parsed
+       sidecar, clips() is what the rig is actually running */
+    setClips: setClips,
+    clips() { return CLIPS; }
+  };
+})();
+
+/* =====================================================================
    PLAYER MODEL - the third-person character. A low-poly humanoid built from
    primitives (capsule torso, sphere head, box arms/legs), the weapon it is
    holding, a parachute while gliding, and a simple walk cycle / crouch squash
@@ -4460,7 +6250,11 @@ const ItemIcons = (function () {
 const PlayerView = (function () {
   const geoCache = {};
   let group = null, gun = null, chute = null, shieldBubble = null;
-  let torso = null, head = null, armL = null, armR = null, legL = null, legR = null;
+  let torso = null, head = null, trim = null, armL = null, armR = null, legL = null, legR = null;
+  let charRoot = null;              // holder for the loaded character model
+  let rig = null;                   // the character's procedural hinge rig (if any)
+  let usingModel = false;           // true once the character model is in place
+  let modelRoll = 0;                // smoothed walk-cycle roll for an unrigged model
   const tint = new THREE.Color();
   let walkPhase = 0, kick = 0, lean = 0;
 
@@ -4497,6 +6291,7 @@ const PlayerView = (function () {
        the camera any more, so the player can actually see themselves) */
     init(scene) {
       group = new THREE.Group();
+      group.name = 'playerCharacter';
       const cast = !!World.quality.shadows;
 
       /* torso: a capsule whose chest lines up with the +0.62 hit sphere */
@@ -4510,8 +6305,8 @@ const PlayerView = (function () {
       head.position.set(0, 1.34, 0);
 
       /* a bright trim strip across the chest so you can spot yourself */
-      const trim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.34),
-                                  new THREE.MeshLambertMaterial({ color: TRIM_C }));
+      trim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.34),
+                           new THREE.MeshLambertMaterial({ color: TRIM_C }));
       trim.position.set(0, 1.05, 0.04);
 
       armL = limb(0.15, 0.50, 0.15, CLOTH_C, 1.16, -0.34, 0);
@@ -4545,6 +6340,57 @@ const PlayerView = (function () {
         o.frustumCulled = false;
         o.castShadow = (o !== shieldBubble) && cast;   // the bubble must not shadow
       });
+      /* the real character (see the PLAYER CHARACTER section) drops in here as
+         soon as its file has loaded. The primitives stay in the group as the
+         fallback body and are hidden the moment the model arrives, so a missing
+         or unreadable .glb can never leave the player invisible. */
+      charRoot = new THREE.Group();
+      charRoot.name = 'playerCharacterModel';
+      charRoot.visible = false;
+      group.add(charRoot);
+      /* The model file is a few megabytes of base64, so let the title screen
+         paint first and pull it in on the next tick - boot and the menus must
+         never wait on it. Until it arrives the primitives above are the body. */
+      const attachCharacter = function (model) {
+        if (!model) return;
+        charRoot.add(model);
+        charRoot.visible = true;
+        /* the file is one static mesh, so it gets a procedural rig: the body is
+           cut back into its original rigid pieces and hung on hinges (see the
+           PLAYER CHARACTER RIG section). That is what makes the arms and legs
+           move - without it he would just slide around in his shipped pose. */
+        try {
+          rig = CharacterRig.build(model, CONFIG.CHARACTER.height);
+        } catch (err) {
+          rig = null;
+          console.warn('[character] rigging failed: ' + ((err && err.message) || err) +
+                       ' - he keeps his shipped pose');
+        }
+        if (rig && rig.pieces < 8) rig = null;      // nothing sensible to hang on
+        if (rig) {
+          console.log('[character] rigged ' + rig.pieces + ' rigid pieces onto ' +
+            Object.keys(rig.bones).length + ' hinges -> ' + rig.meshes + ' meshes, ' +
+            Math.round(rig.triangles) + ' triangles');
+          /* the walk and run cycles come from the FBX bake. Hand them to the
+             rig as soon as they arrive: until then (and if they never do) the
+             procedural cycle keeps the limbs moving. */
+          Character.loadAnims().then(function (clips) {
+            if (rig && CharacterRig.setClips(clips)) {
+              console.log('[character] the rig is playing the baked walk/run cycles');
+            }
+          });
+        }
+        if (torso) torso.visible = false;
+        if (head) head.visible = false;
+        if (trim) trim.visible = false;
+        if (armL) armL.visible = false;
+        if (armR) armR.visible = false;
+        if (legL) legL.visible = false;
+        if (legR) legR.visible = false;
+        usingModel = true;
+      };
+      setTimeout(function () { Character.load().then(attachCharacter); }, 0);
+
       group.visible = false;
       scene.add(group);
     },
@@ -4561,6 +6407,10 @@ const PlayerView = (function () {
     },
     hide() { if (group) group.visible = false; },
     visible() { return !!(group && group.visible); },
+    /* the character model's locomotion state - clip phase, how much of the body
+       the cycle owns, the walk/run mix and the bounce out of the clip. Null
+       while he is the built-in humanoid or an unrigged model. */
+    loco() { return rig ? rig.loco : null; },
 
     /* pose the character from the player state */
     update(dt, player) {
@@ -4580,18 +6430,24 @@ const PlayerView = (function () {
       if (legL) { legL.rotation.x = swing; legR.rotation.x = -swing; }
       if (armL) { armL.rotation.x = -swing * 0.6; armR.rotation.x = swing * 0.6; }
 
-      /* crouch squash (the group pivot is at the feet, so this reads right) */
-      group.scale.set(1, player.crouching ? 0.78 : 1, 1);
+      /* crouch squash (the group pivot is at the feet, so this reads right).
+         A rigged character already folds its knees, so he only gets a light
+         squash on top of that instead of a double crouch. */
+      group.scale.set(1, player.crouching ? (rig ? 0.90 : 0.78) : 1, 1);
 
-      /* airborne: arms up, parachute out while the glider is open */
+      /* airborne: the canopy puts the hands on the risers, freefall spreads the
+         arms out to the sides (see the rig's airborne branch) */
       if (player.airborne) {
-        if (armL) armL.rotation.x = -2.3;
-        if (armR) armR.rotation.x = -2.3;
+        const risers = !!player.gliderOpen;
+        if (armL) { armL.rotation.x = risers ? -2.3 : -0.45; armL.rotation.z = risers ? 0.25 : 0.95; }
+        if (armR) { armR.rotation.x = risers ? -2.3 : -0.45; armR.rotation.z = risers ? -0.25 : -0.95; }
         if (legL) legL.rotation.x = 0.5;
         if (legR) legR.rotation.x = -0.35;
-        if (chute) chute.visible = !!player.gliderOpen;
-      } else if (chute) {
-        chute.visible = false;
+        if (chute) chute.visible = risers;
+      } else {
+        if (chute) chute.visible = false;
+        if (armL) armL.rotation.z = 0;
+        if (armR) armR.rotation.z = 0;
       }
 
       /* aim lean: the torso leads the camera by a few degrees while turning */
@@ -4609,6 +6465,34 @@ const PlayerView = (function () {
       /* aiming raises the whole upper body slightly */
       if (torso) torso.position.y = 0.70 + player.adsT * 0.03;
       if (head) head.position.y = 1.34 + player.adsT * 0.03;
+
+      /* the character model: a rigged one animates its real limbs and only
+         bobs as a body, an unrigged one keeps the whole-body bob and roll */
+      if (usingModel && charRoot) {
+        const amp = CONFIG.CHARACTER.bob * moveAmt;
+        const sineBob = (Math.abs(Math.sin(walkPhase)) - 0.5) * amp;
+        charRoot.position.y = sineBob;
+        if (rig) {
+          /* the pose returns the locomotion state, which carries the bounce
+             figure out of the baked cycle (its own hips) */
+          const loco = CharacterRig.pose(rig, walkPhase, {
+            move: moveAmt, speed: speed, airborne: player.airborne,
+            glider: !!player.gliderOpen,
+            crouch: player.crouching, armed: !!player.wdef(), turn: lead,
+            look: -CAM.pitch, time: Game.time, dt: dt
+          });
+          if (loco && loco.weight > 0) {
+            charRoot.position.y = lerp(sineBob, loco.bob, clamp(loco.weight, 0, 1));
+          }
+          charRoot.rotation.set(0, 0, 0);
+        } else {
+          modelRoll = lerp(modelRoll, Math.sin(walkPhase) * CONFIG.CHARACTER.sway * moveAmt,
+                           1 - Math.exp(-10 * dt));
+          charRoot.rotation.z = modelRoll;
+          charRoot.rotation.x = player.airborne ? -0.18 : moveAmt * 0.05;
+          charRoot.rotation.y = -lean * CONFIG.CHARACTER.turnLead;
+        }
+      }
 
       /* shield bubble: size and brightness follow the shield you are carrying,
          and it flashes for a moment after absorbing a hit */
@@ -4637,6 +6521,10 @@ const Input = {
   keys: Object.create(null),
   moveX: 0, moveZ: 0, firing: false, ads: false, sprint: false, crouch: false,
   jumpQueued: false, locked: false,
+  /* Analog axes contributed by the on-screen stick (see TouchUI). The keyboard
+     and mouse path never writes them, so updateAxes() stays the single place
+     that turns every input source into the two movement numbers. */
+  analog: { x: 0, z: 0 },
   bindings: {
     KeyW: 'fwd', KeyS: 'back', KeyA: 'left', KeyD: 'right',
     ArrowUp: 'fwd', ArrowDown: 'back', ArrowLeft: 'left', ArrowRight: 'right',
@@ -4646,12 +6534,40 @@ const Input = {
   init(canvas) {
     window.addEventListener('keydown', function (e) { Input.onKey(e, true); });
     window.addEventListener('keyup', function (e) { Input.onKey(e, false); });
-    window.addEventListener('mousedown', function (e) { Input.onMouse(e, true); });
-    window.addEventListener('mouseup', function (e) { Input.onMouse(e, false); });
+    /* Aiming input. Both families are always registered: pointer events cover
+       trackpads (a two-finger click arrives as pointerdown button 2) and the
+       mouse events are the fallback for browsers without PointerEvent. A browser
+       that has pointer events fires them first for the same press, so the mouse
+       echo arriving microseconds later is dropped - a press is never handled
+       twice, and a machine that only ever sends mouse events still works. */
+    let lastPointerAt = 0;
+    const button = function (e, down) {
+      const isPointer = e.type.lastIndexOf('pointer', 0) === 0;
+      const now = (window.performance || Date).now();
+      if (isPointer) lastPointerAt = now;
+      else if (now - lastPointerAt < 350) return;    // echo of a pointer event
+      Input.onMouse(e, down);
+    };
+    window.addEventListener('pointerdown', function (e) { button(e, true); });
+    window.addEventListener('pointerup', function (e) { button(e, false); });
+    window.addEventListener('pointercancel', function () { Input.clearAds(); });
+    window.addEventListener('mousedown', function (e) { button(e, true); });
+    window.addEventListener('mouseup', function (e) { button(e, false); });
+    /* Some trackpads swallow the press entirely and only report a bare auxclick.
+       In toggle mode that is exactly one toggle; in hold mode treat it as a short
+       aim pulse so the gesture still aims instead of doing nothing. */
+    window.addEventListener('auxclick', function (e) {
+      if (e.button !== 2 || !Input.locked) return;
+      if (SETTINGS.adsToggle) { Input.ads = !Input.ads; return; }
+      Input.ads = true;
+      clearTimeout(Input.adsPulse);
+      Input.adsPulse = setTimeout(function () { Input.ads = false; }, 320);
+    });
     window.addEventListener('wheel', function (e) { Input.onWheel(e); }, { passive: false });
     document.addEventListener('mousemove', function (e) { Input.onMove(e); });
     document.addEventListener('pointerlockchange', function () {
       Input.locked = (document.pointerLockElement === canvas);
+      if (!Input.locked) Input.clearAds();      // never stay stuck zoomed in
       App.onPointerLockChange(Input.locked);
     });
     window.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -4659,10 +6575,14 @@ const Input = {
       Input.keys = Object.create(null);
       Input.updateAxes();
       Input.firing = false;
-      Input.ads = false;
+      Input.clearAds();
+      TouchUI.releaseAll();          // fingers go away with the window too
     });
   },
   requestLock() {
+    /* a touch device has no mouse to capture - and on Android asking for the
+       lock just throws, so the whole lock dance is skipped there */
+    if (TouchUI.on) return;
     const c = document.getElementById('gameCanvas');
     if (!c || !c.requestPointerLock) return;
     /* Chrome returns a promise that rejects when the lock is refused - most
@@ -4671,11 +6591,22 @@ const Input = {
     const res = c.requestPointerLock();
     if (res && typeof res.catch === 'function') res.catch(function () {});
   },
-  releaseLock() { if (document.exitPointerLock) document.exitPointerLock(); },
+  releaseLock() {
+    this.clearAds();                 // leaving the lock always drops the sights
+    if (TouchUI.on) return;
+    if (document.exitPointerLock) document.exitPointerLock();
+  },
+  /* one place to drop out of ADS (death, pause, map, unlocking, tabbing away) */
+  clearAds() {
+    this.ads = false;
+    if (this.adsPulse) { clearTimeout(this.adsPulse); this.adsPulse = 0; }
+  },
   updateAxes() {
-    const k = this.keys;
-    this.moveX = (k.right ? 1 : 0) - (k.left ? 1 : 0);
-    this.moveZ = (k.fwd ? 1 : 0) - (k.back ? 1 : 0);
+    const k = this.keys, a = this.analog;
+    /* keys and stick add up, then clamp: a key held down while the stick is
+       also pushed can never ask for more than full deflection */
+    this.moveX = clamp((k.right ? 1 : 0) - (k.left ? 1 : 0) + a.x, -1, 1);
+    this.moveZ = clamp((k.fwd ? 1 : 0) - (k.back ? 1 : 0) + a.z, -1, 1);
     this.sprint = !!k.sprint;
     this.crouch = !!k.crouch;
   },
@@ -4687,6 +6618,14 @@ const Input = {
     }
     if (code === 'Escape') {
       if (down && (App.state === 'PLAYING' || App.state === 'DROP')) App.pause();
+      return;
+    }
+    /* Keyboard aim (SETTINGS.adsKey). Checked before the movement bindings so a
+       key that is also bound elsewhere (Left Shift) aims *instead* of sprinting,
+       exactly as the setting label says; the default (V) clashes with nothing. */
+    if (code === SETTINGS.adsKey) {
+      if (SETTINGS.adsToggle) { if (down && Player.alive) this.ads = !this.ads; }
+      else this.ads = down && Player.alive;
       return;
     }
     const bind = this.bindings[code];
@@ -4742,7 +6681,11 @@ const Input = {
          pistol could not be fired at all. Player.fire() has the fire-rate gate,
          so holding the button on an automatic still cannot double-fire. */
       if (down && Player.alive) Player.fire();
-    } else if (e.button === 2) this.ads = down;
+    } else if (e.button === 2) {
+      /* right button: hold to aim, or toggle when the setting says so */
+      if (SETTINGS.adsToggle) { if (down) this.ads = !this.ads; }
+      else this.ads = down;
+    }
   },
   onWheel(e) {
     e.preventDefault();
@@ -4751,21 +6694,455 @@ const Input = {
     const w = Player.currentWeapon();
     if (w) PlayerView.setWeapon(w.id);
   },
-  onMove(e) {
-    if (!this.locked) return;
-    const s = SETTINGS.sensitivity;
-    /* THE INVERTED-MOUSE LINE. CAM.yaw is a compass heading: 0 = north (-Z) and
-       +90 deg = east (+X), which is also what CAM.dir/CAM.right are derived
-       from (see CAM.sync). Screen-right therefore has to *increase* yaw, so the
-       sign here must be +=. It used to be `-=`, which turned the view left when
-       the mouse moved right. Vertical look was already correct and is untouched. */
-    CAM.yaw += e.movementX * s;
-    CAM.pitch = clamp(CAM.pitch - e.movementY * s, -1.45, 1.45);
+  /* THE INVERTED-MOUSE LINE. CAM.yaw is a compass heading: 0 = north (-Z) and
+     +90 deg = east (+X), which is also what CAM.dir/CAM.right are derived
+     from (see CAM.sync). Screen-right therefore has to *increase* yaw, so the
+     sign here must be +=. It used to be `-=`, which turned the view left when
+     the mouse moved right. Vertical look was already correct and is untouched.
+     The touch drag feeds this same function, so the two can never drift. */
+  applyLook(dx, dy, sens) {
+    CAM.yaw += dx * sens;
+    CAM.pitch = clamp(CAM.pitch - dy * sens, -1.45, 1.45);
     if (CAM.yaw > Math.PI) CAM.yaw -= Math.PI * 2;
     if (CAM.yaw < -Math.PI) CAM.yaw += Math.PI * 2;
+  },
+  onMove(e) {
+    if (!this.locked) return;
+    this.applyLook(e.movementX, e.movementY, SETTINGS.sensitivity);
   }
 };
 
+
+/* =====================================================================
+   TOUCH - the on-screen controls a phone or tablet plays with.
+   Nothing here re-implements the game: every button feeds the same state the
+   keyboard and mouse feed (Input.analog axes, Input.firing, Input.ads,
+   Input.jumpQueued, Input.keys.*, and CAM.yaw/pitch through Input.applyLook),
+   so fire rates, reload gates, stamina and the ADS rules stay in one place.
+
+   Two gestures live on the play field itself:
+     - the left half of the screen is the movement stick. It is a *floating*
+       stick: the base is parked where the thumb lands, which is why it fits any
+       screen and why a thumb never has to hunt for it.
+     - everywhere else is the look drag. Dragging right turns right (the same
+       sign convention as the mouse) and dragging up looks up.
+   Everything else is a DOM button under the right thumb plus a strip of item
+   buttons along the top left. The whole layer stays inert on a desktop.
+   ===================================================================== */
+const TouchUI = (function () {
+  /* stick geometry, in CSS pixels */
+  const STICK_TRAVEL = 52;        // thumb travel that counts as full deflection
+  const STICK_REST_X = 118;       // where the idle base sits ...
+  const STICK_REST_Y = 110;       // ... measured up from the bottom edge
+  const STICK_DEAD = 0.16;        // resting-thumb dead zone
+  const MOVE_ZONE = 0.45;         // the left share of the screen that moves you
+  /* A drag is not a mouse: the same pixel has to turn the camera much further,
+     or the view feels glued to the finger. Applied on top of the sensitivity. */
+  const LOOK_GAIN = 2.6;
+  /* buttons whose lit state belongs to update(), not to the press itself */
+  const LATCHED = { aim: true, sprint: true, crouch: true };
+
+  const ui = { btn: {} };
+  let built = false, on = false;
+  let stickId = -1, lookId = -1;
+  let baseX = 0, baseY = 0;       // stick base, in screen pixels
+  let lookX = 0, lookY = 0;       // last look-drag position
+  let sprintOn = false, crouchOn = false;
+
+  /* label + layout class per button; the CSS places every one of them */
+  const BUTTONS = [
+    { id: 'pause',   label: 'PAUSE',   cls: 'tUtil tPause' },
+    { id: 'map',     label: 'MAP',     cls: 'tUtil tMap' },
+    { id: 'scores',  label: 'SCORES',  cls: 'tUtil tScores' },
+    { id: 'swap',    label: 'SWAP',    cls: 'tSide tSwap' },
+    { id: 'bandage', label: 'BAND',    cls: 'tSide tBand' },
+    { id: 'shield',  label: 'SHIELD',  cls: 'tSide tShield' },
+    { id: 'sprint',  label: 'SPRINT',  cls: 'tSide tSprint' },
+    { id: 'medkit',  label: 'MED',     cls: 'tSide tMed' },
+    { id: 'nade',    label: 'NADE',    cls: 'tSide tNade' },
+    { id: 'fire',    label: 'FIRE',    cls: 'tFire' },
+    { id: 'aim',     label: 'AIM',     cls: 'tAim' },
+    { id: 'reload',  label: 'RELOAD',  cls: 'tReload' },
+    { id: 'jump',    label: 'JUMP',    cls: 'tJump' },
+    { id: 'crouch',  label: 'CROUCH',  cls: 'tCrouch' },
+    { id: 'use',     label: 'PICK UP', cls: 'tUse' }
+  ];
+
+  function setSprint(v) {
+    sprintOn = v;
+    Input.keys.sprint = v;
+    Input.updateAxes();
+  }
+  function setCrouch(v) {
+    crouchOn = v;
+    Input.keys.crouch = v;
+    Input.updateAxes();
+  }
+  /* tap a consumable to start it, tap the same one again to stop */
+  function useItem(kind) {
+    if (!Player.alive) return;
+    if (Player.using && Player.using.kind === kind) Player.cancelUse();
+    else Player.startUse(kind);
+  }
+
+  /* ---------------- what each button does ----------------
+     Each action is the key the desktop player would press, nothing more. */
+  const ACTIONS = {
+    pause: { down() { if (App.state === 'PLAYING' || App.state === 'DROP') App.pause(); } },
+    map: { down() { UI.toggleMap(); } },
+    scores: { down() { UI.toggleScoreboard(); } },
+    swap: {
+      down() {
+        if (!Player.alive || !Player.weapons.length) return;
+        Player.cycleSlot(1);
+        const w = Player.currentWeapon();
+        if (w) PlayerView.setWeapon(w.id);
+      }
+    },
+    bandage: { down() { useItem('bandage'); } },
+    medkit: { down() { useItem('medkit'); } },
+    shield: { down() { useItem('shield'); } },
+    nade: { down() { if (Player.alive) Player.throwGrenade(); } },
+    /* The trigger: shoot on the pull (semis, bursts, the shotgun, the sniper and
+       the launcher only ever fire there) and hold Input.firing for the autos,
+       exactly like the left mouse button. */
+    fire: {
+      down() {
+        if (App.state === 'SPECTATING') { Game.spectateNext(); return; }
+        Input.firing = true;
+        if (Player.alive) Player.fire();
+      },
+      up() { Input.firing = false; }
+    },
+    /* sights always toggle on touch: one thumb cannot hold a button and aim */
+    aim: {
+      down() {
+        if (!Player.alive || !Player.wdef()) return;
+        Input.ads = !Input.ads;
+      }
+    },
+    reload: { down() { if (Player.alive) Player.reload(); } },
+    /* the drop phase reads the same queue, so JUMP also opens the glider */
+    jump: { down() { Input.jumpQueued = true; } },
+    crouch: { down() { setCrouch(!crouchOn); } },
+    sprint: { down() { setSprint(!sprintOn); } },
+    use: { down() { Loot.take(Loot.aimedItem); } }
+  };
+
+  /* ---------------- the movement stick ---------------- */
+  function parkStick() {
+    /* idle position: the lower left corner, clear of the health bars */
+    placeStick(STICK_REST_X, window.innerHeight - STICK_REST_Y);
+  }
+  function placeStick(x, y) {
+    baseX = x; baseY = y;
+    ui.stickBase.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+  }
+  function showStick(show) {
+    ui.stickBase.classList.toggle('live', !!show);
+    if (!show) ui.knob.style.transform = '';
+  }
+  /* Turn a thumb position into the analog axes. Screen up is forward, so the Y
+     axis is inverted on the way in; the dead zone is squeezed out of what is
+     left so the first few pixels of travel still mean something. */
+  function aimStick(cx, cy) {
+    let dx = cx - baseX, dy = cy - baseY;
+    const r = Math.sqrt(dx * dx + dy * dy);
+    if (r > STICK_TRAVEL) { dx *= STICK_TRAVEL / r; dy *= STICK_TRAVEL / r; }
+    ui.knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    const nx = dx / STICK_TRAVEL, nz = -dy / STICK_TRAVEL;
+    const mag = Math.sqrt(nx * nx + nz * nz);
+    if (mag < STICK_DEAD) {
+      Input.analog.x = 0; Input.analog.z = 0;
+    } else {
+      const k = Math.min(1, (mag - STICK_DEAD) / (1 - STICK_DEAD)) / mag;
+      Input.analog.x = nx * k;
+      Input.analog.z = nz * k;
+    }
+    Input.updateAxes();
+  }
+
+  /* ---------------- button press / release ---------------- */
+  function hold(id, down, btn) {
+    if (down) { if (btn._held) return; btn._held = true; }
+    else { if (!btn._held) return; btn._held = false; }
+    /* toggles are lit by update() from the real game state, not by the finger */
+    if (!LATCHED[id]) btn.classList.toggle('on', down);
+    /* the buttons are inert on the menus, where the DOM screens own the input */
+    if (App.state === 'MENU' || App.state === 'GAME_OVER') return;
+    const act = ACTIONS[id];
+    if (!act) return;
+    if (down) { if (act.down) act.down(); }
+    else if (act.up) act.up();
+  }
+
+  /* Let go of everything: pause, death, the map and a tab-away all call this so
+     a finger that vanished mid-press can never leave you firing or sprinting. */
+  function releaseAll() {
+    stickId = -1; lookId = -1;
+    Input.analog.x = 0; Input.analog.z = 0;
+    Input.firing = false;
+    setSprint(false);
+    setCrouch(false);
+    if (!built) return;
+    for (const id in ui.btn) {
+      const b = ui.btn[id];
+      if (!b._held) continue;
+      b._held = false;
+      if (!LATCHED[id]) b.classList.remove('on');
+    }
+    showStick(false);
+    parkStick();
+  }
+
+  /* a consumable chip shows its count, and dims when you are out. The label is
+     rewritten only when the number really changes: this runs every frame. */
+  function count(btn, n) {
+    const have = n | 0;
+    if (btn._n === have) return;
+    btn._n = have;
+    btn.textContent = btn.getAttribute('data-label') + (have > 0 ? ' ' + have : '');
+    btn.classList.toggle('empty', have <= 0);
+  }
+
+  /* ---------------- the prompts that name a key ----------------
+     A phone has no M, Tab or E, so while the layer is on those lines are
+     re-worded; turning the setting back restores the desktop wording. */
+  function retitle() {
+    const text = function (id, s) {
+      const e = document.getElementById(id);
+      if (e) e.textContent = s;
+    };
+    text('fullmapHint', on ? 'TAP — CLOSE MAP' : 'M / ESC — CLOSE MAP');
+    text('dropHint', on ? 'STICK STEERS  •  JUMP DEPLOYS GLIDER'
+                        : 'WASD STEER  •  SPACE DEPLOY GLIDER');
+    text('startHint', on
+      ? 'Pick a mode, press PLAY • on-screen stick and buttons • PAUSE opens the menu'
+      : 'Pick a mode, press PLAY • mouse locks on click • ESC pauses • audio starts after your first click');
+    const close = document.getElementById('btnSbClose');
+    if (close) close.textContent = on ? 'CLOSE' : 'CLOSE (TAB)';
+    /* the pickup prompt prints its key in a <b> */
+    const key = document.querySelector('#pickupPrompt b');
+    if (key) key.textContent = on ? 'TAP' : 'E';
+  }
+
+  /* ---------------- the layer itself ---------------- */
+  function buildLayer() {
+    built = true;
+    const root = document.createElement('div');
+    root.id = 'touchUI';
+    root.className = 'hidden';
+    const base = document.createElement('div');
+    const knob = document.createElement('div');
+    base.id = 'touchStickBase';
+    knob.id = 'touchStickKnob';
+    base.appendChild(knob);
+    root.appendChild(base);
+    ui.root = root; ui.stickBase = base; ui.knob = knob;
+
+    for (let i = 0; i < BUTTONS.length; i++) {
+      const def = BUTTONS[i];
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tbtn ' + def.cls;
+      b.textContent = def.label;
+      b.setAttribute('data-touch', def.id);
+      b.setAttribute('data-label', def.label);
+      ui.btn[def.id] = b;
+      b.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        /* capture keeps the release: the thumb may slide off the button */
+        if (b.setPointerCapture) {
+          try { b.setPointerCapture(e.pointerId); } catch (err) { /* pointer gone */ }
+        }
+        hold(def.id, true, b);
+      });
+      b.addEventListener('pointerup', function (e) { e.preventDefault(); hold(def.id, false, b); });
+      b.addEventListener('pointercancel', function () { hold(def.id, false, b); });
+      b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      root.appendChild(b);
+    }
+
+    /* portrait notice - tapping it means "play anyway" */
+    const hint = document.createElement('div');
+    hint.id = 'rotateHint';
+    hint.innerHTML = 'ROTATE THE DEVICE<span>TAP TO PLAY ANYWAY</span>';
+    hint.addEventListener('click', function () { document.body.classList.add('noRotateHint'); });
+    root.appendChild(hint);
+
+    document.getElementById('app').appendChild(root);
+
+    /* the play field itself: the left band is the stick, the rest is the look */
+    const canvas = document.getElementById('gameCanvas');
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    canvas.addEventListener('touchcancel', onTouchEnd);
+
+    /* the map fills the screen and a phone has no M key: tap it to close */
+    const map = document.getElementById('fullmapWrap');
+    if (map) map.addEventListener('click', function () {
+      if (on && UI.mapOpen()) UI.toggleMap(false);
+    });
+
+    /* The weapon chips are HUD, but on a phone they are also the only way to
+       pick slot 3 - so a tap selects that slot, exactly like the 1..5 keys. */
+    const slotRow = document.getElementById('slotRow');
+    if (slotRow) slotRow.addEventListener('click', function (e) {
+      if (!on || !e.target.closest) return;
+      const chip = e.target.closest('.slot');
+      if (!chip) return;
+      const slot = Array.prototype.indexOf.call(slotRow.children, chip);
+      if (slot < 0 || !Player.alive) return;
+      if (!Player.weapons[slot]) { SFX.play('deny', { gain: 0.4 }); return; }
+      Player.curSlot = slot;
+      Player.reloadT = 0;
+      Player.swapT = 0.25;
+      PlayerView.setWeapon(Player.weapons[slot].id);
+      SFX.play('reload2', { gain: 0.4 });
+    });
+
+    parkStick();
+  }
+
+  /* ---------------- fingers on the play field ---------------- */
+  function onTouchStart(e) {
+    if (!on || App.paused) return;
+    const zone = window.innerWidth * MOVE_ZONE;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      /* dead and spectating: any tap moves on to the next survivor */
+      if (App.state === 'SPECTATING') { Game.spectateNext(); continue; }
+      if (t.clientX < zone && stickId < 0) {
+        stickId = t.identifier;
+        placeStick(t.clientX, t.clientY);
+        showStick(true);
+        aimStick(t.clientX, t.clientY);
+      } else if (lookId < 0) {
+        lookId = t.identifier;
+        lookX = t.clientX;
+        lookY = t.clientY;
+      }
+    }
+    /* stops the browser's own scroll, zoom and double-tap machinery */
+    e.preventDefault();
+  }
+  function onTouchMove(e) {
+    if (!on) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === stickId) aimStick(t.clientX, t.clientY);
+      else if (t.identifier === lookId) {
+        Input.applyLook(t.clientX - lookX, t.clientY - lookY,
+                        SETTINGS.sensitivity * LOOK_GAIN * SETTINGS.touchSens);
+        lookX = t.clientX;
+        lookY = t.clientY;
+      }
+    }
+    e.preventDefault();
+  }
+  function onTouchEnd(e) {
+    if (!on) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === stickId) {
+        stickId = -1;
+        Input.analog.x = 0;
+        Input.analog.z = 0;
+        Input.updateAxes();
+        showStick(false);
+        parkStick();
+      } else if (t.identifier === lookId) lookId = -1;
+    }
+  }
+
+  /* ---------------- on / off, and what the setting asks for ----------------
+     A touchscreen laptop reports touch points too but is played with a mouse, so
+     only a device whose primary pointer is coarse *and* cannot hover counts as a
+     phone or tablet. SETTINGS.touch overrules that either way. */
+  function deviceIsTouch() {
+    if ((navigator.maxTouchPoints || 0) <= 0 && !('ontouchstart' in window)) return false;
+    if (!window.matchMedia) return true;
+    return window.matchMedia('(hover: none)').matches &&
+           window.matchMedia('(pointer: coarse)').matches;
+  }
+  function resolveMode() {
+    if (SETTINGS.touch === 'on') return true;
+    if (SETTINGS.touch === 'off') return false;
+    return deviceIsTouch();
+  }
+  function checkPortrait() {
+    document.body.classList.toggle('portrait',
+      on && deviceIsTouch() && window.innerHeight > window.innerWidth);
+  }
+
+  function refresh() {
+    const want = resolveMode();
+    if (want && !built) buildLayer();
+    const turnedOn = want && !on;
+    on = want;
+    if (built) ui.root.classList.toggle('hidden', !on);
+    document.body.classList.toggle('touchControls', on);
+    retitle();
+    checkPortrait();
+    if (!on) { releaseAll(); return; }
+    /* A phone is not a desktop: the high preset (100 bots, double-resolution
+       pixels) does not run on one, so the first time the layer comes up the
+       quality steps down - unless the player has already chosen something. */
+    if (turnedOn && SETTINGS.quality === 'high') {
+      SETTINGS.quality = 'med';
+      App.applyQuality();
+      App.syncSettings();
+    }
+    /* Hand the pointer lock back: a captured mouse cursor is no use to a thumb,
+       and leaving the desktop mouse in the match while a phone plays would be
+       worse. `on` is already true, so the lock handler will not pause for it. */
+    Input.clearAds();
+    if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+    parkStick();
+  }
+
+  return {
+    get on() { return on; },
+    /* is this really a touch device? (the setting can overrule the answer) */
+    touchDevice: deviceIsTouch,
+    refresh,
+    /* what the settings select and the test harness drive it with */
+    setEnabled(v) { SETTINGS.touch = v ? 'on' : 'off'; refresh(); },
+    releaseAll,
+    /* per-frame button state, called from the loop while a match is live */
+    update() {
+      const b = ui.btn;
+      if (!b.fire) return;
+      b.aim.classList.toggle('on', !!Player.ads);
+      b.sprint.classList.toggle('on', !!Input.keys.sprint);
+      b.crouch.classList.toggle('on', !!Input.keys.crouch);
+      b.reload.classList.toggle('on', Player.reloadT > 0);
+      /* the pickup button lights up while something is in reach */
+      b.use.classList.toggle('ready', !!Loot.aimedItem);
+      /* the consumable counts ride on the chips that cast them */
+      count(b.bandage, Player.inv.bandage);
+      count(b.medkit, Player.inv.medkit);
+      count(b.shield, Player.inv.shield);
+      count(b.nade, Player.inv.nade);
+    },
+    init() {
+      window.addEventListener('resize', function () {
+        if (!on) return;
+        checkPortrait();
+        parkStick();
+      });
+      /* Android fires this before the viewport has taken its new size */
+      window.addEventListener('orientationchange', function () {
+        setTimeout(function () { if (on) { checkPortrait(); parkStick(); } }, 120);
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) releaseAll();
+      });
+      refresh();
+    }
+  };
+})();
 
 /* =====================================================================
    UI - in-game HUD, kill feed, compass, prompts, scoreboard.
@@ -4805,10 +7182,10 @@ const UI = (function () {
       crossLines.b = el.crosshair.querySelector('.ch-b');
       crossLines.l = el.crosshair.querySelector('.ch-l');
       crossLines.r = el.crosshair.querySelector('.ch-r');
-      /* toast lane (built in JS so the markup stays lean) */
+      /* toast lane (built in JS so the markup stays lean; positioned by #toastLane
+         in the stylesheet so the touch layout can move it) */
       const lane = document.createElement('div');
-      lane.style.cssText = 'position:absolute;left:50%;bottom:24%;transform:translateX(-50%);' +
-        'text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center;';
+      lane.id = 'toastLane';
       el.hud.appendChild(lane);
       el.toastLane = lane;
       for (let i = 0; i < 5; i++) {
@@ -5080,7 +7457,7 @@ const UI = (function () {
       const sb = el.scoreboard;
       if (show === undefined) show = sb.classList.contains('hidden');
       sb.classList.toggle('hidden', !show);
-      if (show) this.buildScoreboard();
+      if (show) { Input.clearAds(); TouchUI.releaseAll(); this.buildScoreboard(); }
       return show;
     },
     buildScoreboard() {
@@ -5115,7 +7492,7 @@ const UI = (function () {
       const wrap = el.fullmapWrap;
       if (show === undefined) show = wrap.classList.contains('hidden');
       wrap.classList.toggle('hidden', !show);
-      if (show) Maps.drawFull();
+      if (show) { Input.clearAds(); TouchUI.releaseAll(); Maps.drawFull(); }
       return show;
     },
     mapOpen() { return !el.fullmapWrap.classList.contains('hidden'); },
@@ -5298,7 +7675,9 @@ function buildMapImage() {
   const g = cv.getContext('2d');
   g.fillStyle = '#0c2534';
   g.fillRect(0, 0, S, S);
-  /* terrain bands straight off the heightmap */
+  /* terrain bands straight off the heightmap (Surf City's highlands stay
+     green - its rock cap starts much higher up than the classic island's) */
+  const rockH = World.mapId === 'surf' ? 34 : 25;
   const n = World.hN + 1;
   const px = S / n;
   for (let j = 0; j < n; j++) {
@@ -5310,16 +7689,53 @@ function buildMapImage() {
       else if (h < 1.4) col = '#c4b183';
       else if (h < 3.6) col = '#9d9a63';
       else if (h < 15) col = '#4f7d3d';
-      else if (h < 25) col = '#3d6530';
+      else if (h < rockH) col = '#3d6530';
       else col = '#7c7c74';
+      /* forest mottling over the green, like the reference map's canopy */
+      if (h >= 3.6 && h < rockH) {
+        const wx = -World.hHalf + i * World.hStep, wz = -World.hHalf + j * World.hStep;
+        if (fbm(wx * 0.021 + 5.3, wz * 0.021 - 8.1, 2) > 0.55) col = '#3f6f33';
+      }
       g.fillStyle = col;
       g.fillRect(i * px, j * px, px + 1, px + 1);
     }
+  }
+  /* the road network, drawn the way the reference map shows it: a dark
+     shoulder, an asphalt body and a dashed centre line */
+  function strokeRoads(w, col, dash) {
+    g.strokeStyle = col;
+    g.lineWidth = w;
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.setLineDash(dash || []);
+    for (let r = 0; r < World.roads.length; r++) {
+      const line = World.roads[r];
+      g.beginPath();
+      for (let i = 0; i < line.length; i++) {
+        const p = World.mapPoint(line[i][0], line[i][1]);
+        if (i === 0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y);
+      }
+      g.stroke();
+    }
+    g.setLineDash([]);
+  }
+  if (World.roads.length) {
+    strokeRoads(6.5, 'rgba(58,58,56,.85)', null);
+    strokeRoads(4.2, 'rgba(146,144,137,.95)', null);
+    strokeRoads(1.1, 'rgba(250,244,214,.5)', [6, 7]);
   }
   /* buildings as bright blocks, town names underneath */
   g.textAlign = 'center';
   for (let t = 0; t < World.towns.length; t++) {
     const town = World.towns[t];
+    /* downtown gets a grey urban slab under its blocks */
+    if (town.city) {
+      const pc = World.mapPoint(town.x, town.z);
+      g.fillStyle = 'rgba(158,156,150,.45)';
+      g.beginPath();
+      g.arc(pc.x, pc.y, town.r * S / CONFIG.MAP_SIZE, 0, Math.PI * 2);
+      g.fill();
+    }
     for (let b = 0; b < town.buildings.length; b++) {
       const bd = town.buildings[b];
       const p = World.mapPoint(bd.x, bd.z);
@@ -5462,6 +7878,88 @@ function webglAvailable() {
   } catch (e) { return false; }
 }
 
+/* =====================================================================
+   GAME MODES - the three poster tiles on the title screen. Battle Royale is
+   the mode this build ships; Save the World and Creative sit on the shelf
+   because a lobby reads better with all three, and they say out loud that
+   they are not in this build instead of dropping the player into an empty
+   match. Painting is data-driven from MODES, so adding a mode is one entry
+   plus one <button class="modeTile" data-mode="..."> in the markup.
+   ===================================================================== */
+const MODES = [
+  { id: 'stw', name: 'SAVE THE WORLD', tag: 'COMING SOON', locked: true,
+    blurb: 'Campaign - husks, storm shields and a home base to defend.' },
+  { id: 'br', name: 'BATTLE ROYALE', tag: '', locked: false,
+    blurb: '100 combatants, 1 winner - drop in, loot up, outlast the storm.' },
+  { id: 'cre', name: 'CREATIVE', tag: 'COMING SOON', locked: true,
+    blurb: 'Sandbox island - build, edit and mess about with no storm.' }
+];
+
+const Modes = {
+  pick: 'br',
+  byId(id) {
+    for (let i = 0; i < MODES.length; i++) if (MODES[i].id === id) return MODES[i];
+    return null;
+  },
+  selected() { return this.byId(this.pick) || MODES[1]; },
+  /* a locked tile explains itself in the caption instead of just going grey */
+  caption(m) {
+    return m.locked ? (m.blurb + ' Not in this build - pick BATTLE ROYALE to play.') : m.blurb;
+  },
+  paint() {
+    const sel = this.selected();
+    const tiles = document.querySelectorAll('.modeTile');
+    for (let i = 0; i < tiles.length; i++) {
+      const m = this.byId(tiles[i].getAttribute('data-mode'));
+      if (!m) continue;
+      tiles[i].classList.toggle('sel', m.id === sel.id);
+      tiles[i].classList.toggle('locked', !!m.locked);
+      tiles[i].setAttribute('aria-pressed', m.id === sel.id ? 'true' : 'false');
+    }
+    const name = document.getElementById('modePickName');
+    if (name) name.textContent = sel.name;
+    const sub = document.getElementById('modePickSub');
+    if (sub) sub.textContent = this.caption(sel);
+    const play = document.getElementById('btnPlay');
+    if (play) {
+      play.textContent = sel.locked ? 'COMING SOON' : 'PLAY';
+      play.classList.toggle('locked', !!sel.locked);
+    }
+    const who = document.getElementById('signedName');
+    if (who) who.textContent = SETTINGS.name;
+    MapRotation.paint();
+  },
+  select(id) {
+    const m = this.byId(id);
+    if (!m) return;
+    this.pick = m.id;
+    this.paint();
+  },
+  /* PLAY only ever drops the player into a mode this build can run */
+  play() {
+    if (this.selected().locked) { SFX.play('deny'); return false; }
+    App.startMatch();
+    return true;
+  },
+  init() {
+    const self = this;
+    const tiles = document.querySelectorAll('.modeTile');
+    for (let i = 0; i < tiles.length; i++) {
+      tiles[i].addEventListener('click', function () {
+        SFX.init();
+        SFX.play('uiClick');
+        const m = self.byId(this.getAttribute('data-mode'));
+        if (m && m.locked) SFX.play('deny');
+        self.select(this.getAttribute('data-mode'));
+      });
+    }
+    this.paint();
+    /* the rotation runs on the real wall clock: keep the menu countdown
+       honest, and the moment a slot rolls over the line names the new map */
+    setInterval(function () { MapRotation.paint(); }, 1000);
+  }
+};
+
 const App = {
   renderer: null, scene: null, camera: null, canvas: null,
   state: 'MENU',                      // MENU | DROP | PLAYING | SPECTATING | GAME_OVER
@@ -5509,6 +8007,7 @@ const App = {
     UI.init();
     PlayerView.init(this.scene);
     Input.init(this.canvas);
+    TouchUI.init();
     Loot.init(this.scene);
     ItemIcons.bake();
     Loot.initCrates(this.scene);
@@ -5523,6 +8022,14 @@ const App = {
     document.getElementById('fmtPhases').textContent = CONFIG.ZONE_PHASES.length;
     this.buildSettingsUI();
     this.wireMenus();
+    /* the character model loads in the background (PlayerView already asked for
+       it). Report the outcome on the start screen: the credit line doubles as
+       the load check, so a missing .glb or sidecar is visible instead of
+       silently falling back to the built-in humanoid. */
+    Character.load().then(function () {
+      const el = document.getElementById('charCredit');
+      if (el) el.textContent = Character.report();
+    });
     bootLoading.classList.add('hidden');
     this.showScreen('startScreen');
     return true;
@@ -5552,6 +8059,11 @@ const App = {
       const host = hosts[h];
       host.innerHTML =
         '<h3>SETTINGS</h3>' +
+        '<div class="settingRow"><label>Player name</label>' +
+        '<input type="text" maxlength="14" size="12" data-set="name" ' +
+        'style="background:rgba(10,26,34,.9);color:#eafcff;border:1px solid rgba(65,224,255,.4);' +
+        'border-radius:5px;padding:4px 8px;font-family:var(--ui);font-size:12.5px">' +
+        '<span class="val">signed in</span></div>' +
         '<div class="settingRow"><label>Mouse sens</label>' +
         '<input type="range" data-set="sensitivity" min="0.0006" max="0.006" step="0.0002">' +
         '<span class="val" data-out="sensitivity"></span></div>' +
@@ -5563,18 +8075,41 @@ const App = {
         '<option value="low">Low &mdash; 40 bots</option>' +
         '<option value="med">Medium &mdash; 68 bots</option>' +
         '<option value="high">High &mdash; 100 bots</option></select></div>' +
+        '<div class="settingRow"><label>Aim key</label>' +
+        '<select data-set="adsKey">' +
+        '<option value="KeyV">V (default)</option>' +
+        '<option value="ShiftLeft">Left Shift (aims instead of sprinting)</option>' +
+        '<option value="ControlLeft">Left Ctrl (aims instead of crouching)</option>' +
+        '<option value="">None &mdash; right mouse only</option></select></div>' +
+        '<div class="settingRow"><label>Toggle aim (trackpad)</label>' +
+        '<input type="checkbox" data-set="adsToggle" style="accent-color:#41e0ff;width:16px;height:16px"></div>' +
+        '<div class="settingRow"><label>Touch controls</label>' +
+        '<select data-set="touch">' +
+        '<option value="auto">Auto &mdash; phones &amp; tablets</option>' +
+        '<option value="on">On &mdash; on-screen stick &amp; buttons</option>' +
+        '<option value="off">Off &mdash; mouse &amp; keyboard</option></select></div>' +
+        '<div class="settingRow"><label>Touch look</label>' +
+        '<input type="range" data-set="touchSens" min="0.4" max="3" step="0.1">' +
+        '<span class="val" data-out="touchSens"></span></div>' +
         '<div class="settingRow"><label>Mute audio</label>' +
         '<input type="checkbox" data-set="muted" style="accent-color:#41e0ff;width:16px;height:16px"></div>' +
         '<div class="settingRow"><label>Show FPS</label>' +
         '<input type="checkbox" data-set="showFps" style="accent-color:#41e0ff;width:16px;height:16px"></div>';
       const sync = function () {
+        host.querySelector('[data-set=name]').value = SETTINGS.name;
         host.querySelector('[data-set=sensitivity]').value = SETTINGS.sensitivity;
         host.querySelector('[data-set=volume]').value = SETTINGS.volume;
         host.querySelector('[data-set=quality]').value = SETTINGS.quality;
+        host.querySelector('[data-set=adsKey]').value = SETTINGS.adsKey;
+        host.querySelector('[data-set=adsToggle]').checked = SETTINGS.adsToggle;
+        host.querySelector('[data-set=touch]').value = SETTINGS.touch;
+        host.querySelector('[data-set=touchSens]').value = SETTINGS.touchSens;
         host.querySelector('[data-set=muted]').checked = SETTINGS.muted;
         host.querySelector('[data-set=showFps]').checked = SETTINGS.showFps;
         host.querySelector('[data-out=sensitivity]').textContent =
           (SETTINGS.sensitivity * 1000).toFixed(1);
+        host.querySelector('[data-out=touchSens]').textContent =
+          SETTINGS.touchSens.toFixed(1) + '\u00d7';
         host.querySelector('[data-out=volume]').textContent = Math.round(SETTINGS.volume * 100) + '%';
       };
       host._syncSettings = sync;
@@ -5582,11 +8117,20 @@ const App = {
         const t = ev.target;
         const key = t.getAttribute('data-set');
         if (!key) return;
-        if (key === 'sensitivity') SETTINGS.sensitivity = parseFloat(t.value);
+        if (key === 'name') {
+          /* trimmed, capped and stripped of markup: it is printed back on the shelf */
+          SETTINGS.name = t.value.replace(/[<>&]/g, '').trim().slice(0, 14) || 'Recruit';
+          Modes.paint();
+        }
+        else if (key === 'sensitivity') SETTINGS.sensitivity = parseFloat(t.value);
         else if (key === 'volume') { SETTINGS.volume = parseFloat(t.value); SFX.setVolume(SETTINGS.volume); }
         else if (key === 'quality') { SETTINGS.quality = t.value; App.applyQuality(); }
         else if (key === 'muted') { SETTINGS.muted = t.checked; SFX.setMuted(SETTINGS.muted); }
         else if (key === 'showFps') SETTINGS.showFps = t.checked;
+        else if (key === 'adsKey') { SETTINGS.adsKey = t.value; Input.clearAds(); }
+        else if (key === 'adsToggle') { SETTINGS.adsToggle = t.checked; Input.clearAds(); }
+        else if (key === 'touch') { SETTINGS.touch = t.value; TouchUI.refresh(); }
+        else if (key === 'touchSens') SETTINGS.touchSens = parseFloat(t.value);
         sync();
       });
       sync();
@@ -5600,6 +8144,10 @@ const App = {
     for (const k in this.screens) {
       if (this.screens[k]) this.screens[k].classList.toggle('hidden', k !== name);
     }
+    /* The on-screen pad belongs to the play field: it steps aside for every menu
+       screen (the pause screen has its own buttons, and the pad would sit behind
+       the half-transparent overlay otherwise). */
+    document.body.classList.toggle('screenOpen', !!name);
   },
   wireMenus() {
     const self = this;
@@ -5612,9 +8160,20 @@ const App = {
         fn();
       });
     }
-    click('btnPlay', function () { self.startMatch(); });
+    Modes.init();
+    /* PLAY is driven by the selected tile: only Battle Royale is a real match */
+    click('btnPlay', function () { Modes.play(); });
+    click('btnSettings', function () {
+      const meta = document.getElementById('modeMeta');
+      if (!meta) return;
+      meta.classList.toggle('hidden');
+      /* the footer is pinned over the shelf, so tell it to un-pin while the
+         cards are unfolded (see #startScreen.metaOpen in the stylesheet) */
+      const host = document.getElementById('startScreen');
+      if (host) host.classList.toggle('metaOpen', !meta.classList.contains('hidden'));
+    });
     click('btnControls', function () { self.showScreen('controlsScreen'); });
-    click('btnControlsBack', function () { self.showScreen('startScreen'); });
+    click('btnControlsBack', function () { Modes.paint(); self.showScreen('startScreen'); });
     click('btnResume', function () { self.resume(); });
     click('btnRestart2', function () { self.startMatch(); });
     click('btnQuit', function () { self.quitToMenu(); });
@@ -5631,6 +8190,9 @@ const App = {
     SFX.resume();
     RNG.set((Math.random() * 0xffffffff) >>> 0);
     const seed = RNG.int(1, 2147483000);
+    /* which island is live is decided by the real wall clock, not match
+       time: the rotation slot flips every CONFIG.MAP_ROTATION_MIN minutes */
+    const mapDef = MapRotation.current();
     this.quality = QUALITY_PRESETS[SETTINGS.quality] || QUALITY_PRESETS.high;
     this.totalCombatants = Math.min(CONFIG.BOT_COUNT + 1,
       1 + Math.max(40, Math.round(CONFIG.BOT_COUNT * this.quality.botScale)));
@@ -5640,7 +8202,7 @@ const App = {
     this.paused = false;
     this.win = false;
     /* the world comes first: zone, loot and bots all read from it */
-    World.build(this.quality, seed);
+    World.build(this.quality, seed, mapDef.id);
     Zone.reset();
     Loot.clear();
     Loot.populate();
@@ -5657,9 +8219,16 @@ const App = {
     UI.clearFeed();
     UI.toggleMap(false);
     UI.toggleScoreboard(false);
+    const dropMap = document.getElementById('dropMapName');
+    if (dropMap) dropMap.textContent = mapDef.name;
+    UI.announce(mapDef.name + ' — NOW IN ROTATION');
     Input.firing = false;
     Input.ads = false;
     Input.jumpQueued = false;
+    /* the device may have changed hands between matches (a tablet docked, a
+       phone picked up), so re-read the setting before the drop starts */
+    TouchUI.refresh();
+    TouchUI.releaseAll();
     this.showScreen(null);
     this.state = 'DROP';
     Input.requestLock();
@@ -5671,12 +8240,14 @@ const App = {
     Input.releaseLock();
     Input.firing = false;
     Input.ads = false;
+    TouchUI.releaseAll();
     UI.show(false);
     UI.setSpectate(null);
     UI.clearFeed();
     UI.toggleMap(false);
     UI.toggleScoreboard(false);
     PlayerView.hide();
+    Modes.paint();
     this.showScreen('startScreen');
   },
   pause() {
@@ -5685,6 +8256,7 @@ const App = {
     this.paused = true;
     Input.firing = false;
     Input.ads = false;
+    TouchUI.releaseAll();               // no finger stays on the trigger
     UI.toggleScoreboard(false);
     document.getElementById('pauseStats').innerHTML =
       'Kills <b>' + Player.kills + '</b><br>' +
@@ -5703,6 +8275,9 @@ const App = {
     Input.requestLock();
   },
   onPointerLockChange(locked) {
+    /* A touch device never captures a pointer: the on-screen pad is always live,
+       so a "lock lost" event must not drop the match into the pause screen. */
+    if (TouchUI.on) return;
     if (!locked && (this.state === 'PLAYING' || this.state === 'DROP') && !this.paused) this.pause();
     else if (locked && this.paused) { this.paused = false; this.showScreen(null); }
   },
@@ -5724,6 +8299,7 @@ const App = {
     Input.releaseLock();
     Input.firing = false;
     Input.ads = false;
+    TouchUI.releaseAll();
     UI.toggleMap(false);
     UI.toggleScoreboard(false);
     PlayerView.hide();
@@ -5780,6 +8356,7 @@ const Game = {
     Input.firing = false;
     Input.ads = false;
     Input.releaseLock();
+    TouchUI.releaseAll();
     PlayerView.hide();
     App.aliveCount = (Player.alive ? 1 : 0) + Bots.aliveCount();
     App.finishMatch(false);
@@ -5793,6 +8370,7 @@ const Game = {
     PlayerView.hide();
     Input.firing = false;
     Input.ads = false;
+    TouchUI.releaseAll();
     this.spectateIdx = -1;
     this.spectateNext();
     Input.requestLock();
@@ -5897,6 +8475,7 @@ const Game = {
     SFX.setMusicMode((App.aliveCount <= 14 || Zone.state === 'final') ? 'tense' : 'calm');
 
     UI.update(dt);
+    if (TouchUI.on) TouchUI.update();      // on-screen buttons follow the real state
     Maps.drawMinimap();
     if (UI.mapOpen()) Maps.drawFull();
     UI.setFps(App.lastFps);
@@ -5933,6 +8512,7 @@ const Game = {
       PlayerView.hide();
     }
     this.drawScope(scoped);
+    World.syncSky(cam);
     App.renderer.render(App.scene, cam);
   },
 
@@ -6029,6 +8609,7 @@ function checkWin() {
         cam.rotation.set(CAM.pitch, -CAM.yaw, 0);
         cam.fov = 70;
         cam.updateProjectionMatrix();
+        World.syncSky(cam);
         App.renderer.render(App.scene, cam);
       }
     } else {

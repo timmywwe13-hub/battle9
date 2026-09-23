@@ -1,0 +1,43 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  hinge -> geometry (rig space, metres):
+    head        {"meshes":3,"tris":0,"lo":[-0.25,1.25,-0.16],"hi":[0.25,1.74,0.2]}
+    handL       {"meshes":3,"tris":0,"lo":[-0.58,0.69,-0.12],"hi":[-0.46,0.89,0.06]}
+    elbowL      {"meshes":2,"tris":0,"lo":[-0.53,0.83,-0.19],"hi":[-0.32,1.06,-0.02]}
+    shoulderL   {"meshes":3,"tris":0,"lo":[-0.38,1.02,-0.18],"hi":[-0.14,1.28,0]}
+    footL       {"meshes":2,"tris":0,"lo":[-0.23,0,-0.17],"hi":[-0.02,0.17,0.14]}
+    kneeL       {"meshes":2,"tris":0,"lo":[-0.22,0.13,-0.13],"hi":[-0.02,0.4,0.09]}
+    hipL        {"meshes":3,"tris":0,"lo":[-0.22,0.36,-0.14],"hi":[-0.02,0.74,0.09]}
+    handR       {"meshes":3,"tris":0,"lo":[0.46,0.69,-0.12],"hi":[0.58,0.89,0.06]}
+    elbowR      {"meshes":2,"tris":0,"lo":[0.32,0.83,-0.19],"hi":[0.53,1.06,-0.02]}
+    shoulderR   {"meshes":3,"tris":0,"lo":[0.14,1.02,-0.18],"hi":[0.38,1.28,0]}
+    footR       {"meshes":2,"tris":0,"lo":[0.02,0,-0.17],"hi":[0.23,0.17,0.14]}
+    kneeR       {"meshes":2,"tris":0,"lo":[0.02,0.13,-0.13],"hi":[0.22,0.4,0.09]}
+    hipR        {"meshes":3,"tris":0,"lo":[0.02,0.36,-0.14],"hi":[0.22,0.74,0.09]}
+    torso       {"meshes":3,"tris":0,"lo":[-0.25,0.62,-0.2],"hi":[0.25,1.36,0.13]}
+  live travel over three strides (world m): {"box":{"head":{"travel":[0.047,0.002,0.026],"y":[1.324,1.325]},"torso":{"travel":[0,0,0],"y":[0.679,0.679]},"footL":{"travel":[0.046,0.129,0.506],"y":[0.165,0.294]},"footR":{"travel":[0.059,0.111,0.511],"y":[0.161,0.272]},"kneeL":{"travel":[0.051,0.065,0.252],"y":[0.399,0.464]},"kneeR":{"travel":[0.059,0.067,0.237],"y":[0.393,0.46]},"handL":{"travel":[0.143,0.021,0.314],"y":[0.779,0.799]},"handR":{"travel":[0.1,0.057,0.416],"y":[0.776,0.834]}},"weight":1,"phase":0.79,"bob":-0.0266,"modelY":-0.027,"headLocal":[0.013,-0.13,-0.018],"torsoLocal":[0.086,0.148,0.009]}
+    after   60 frames: {"torso":[0.05,-0.05,-0.04],"head":[0.1,0.13,0.05],"shoulderL":[0.17,0.3,0.28],"elbowL":[-0.04,0.02,0.1],"handL":[-0.22,-0.13,0.02],"hipL":[-0.69,0.09,0.02],"kneeL":[0.3,0.03,0.04],"footL":[-0.05,0.01,-0.01],"shoulderR":[-0.48,0.24,-0.48],"elbowR":[-0.34,-0.11,0.05],"handR":[0,0.03,-0.13],"hipR":[0.17,-0.22,-0.03],"kneeR":[0.38,0.22,0.13],"footR":[-0.16,0.01,-0.11]}
+    after  300 frames: {"torso":[0.07,0.09,0.02],"head":[0.1,-0.07,-0.04],"shoulderL":[-0.14,-0.27,0.41],"elbowL":[-0.53,-0.03,-0.05],"handL":[0.05,0.09,-0.06],"hipL":[0.1,0.22,0.02],"kneeL":[0.24,-0.34,-0.1],"footL":[-0.27,0.03,0.1],"shoulderR":[0.09,-0.19,-0.28],"elbowR":[0.08,-0.04,-0.1],"handR":[-0.26,-0.04,0.13],"hipR":[-0.57,-0.1,-0.03],"kneeR":[0.35,-0.06,-0.04],"footR":[-0.15,0.01,-0.11]}
+    after  900 frames: {"torso":[0.05,-0.05,-0.04],"head":[0.1,0.13,0.05],"shoulderL":[0.17,0.3,0.28],"elbowL":[-0.06,0.02,0.1],"handL":[-0.22,-0.13,0.02],"hipL":[-0.69,0.09,0.02],"kneeL":[0.3,0.03,0.04],"footL":[-0.05,0.01,-0.01],"shoulderR":[-0.48,0.24,-0.48],"elbowR":[-0.33,-0.11,0.05],"handR":[0,0.03,-0.13],"hipR":[0.17,-0.22,-0.03],"kneeR":[0.38,0.22,0.13],"footR":[-0.16,0.01,-0.11]}
+    after 1200 frames: {"torso":[0.01,0,0],"head":[0.01,0,0],"shoulderL":[-0.02,0,0.34],"elbowL":[-0.2,0,0],"handL":[-0.08,0,0],"hipL":[0,0,0],"kneeL":[0,0,0],"footL":[0,0,0],"shoulderR":[-0.02,0,-0.34],"elbowR":[-0.2,0,0],"handR":[-0.08,0,0],"hipR":[0,0,0],"kneeR":[0,0,0],"footR":[0,0,0]}
+  shot _anim-idle-front
+  shot _anim-idle-left
+  shot _anim-walk-front
+  shot _anim-walk-left
+  shot _anim-head-front
+  shot _anim-head-left
+  shot _anim-feet-front
+  shot _anim-feet-left
+PASS  probe ran   [ok]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 419 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+1/1 checks passed; 0 console problem(s)

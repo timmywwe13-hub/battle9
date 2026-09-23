@@ -1,0 +1,50 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  sandbox: {"spot":{"x":264.6674695352689,"z":115.4841683945548,"y":7.611153311637958},"weapons":["pistol","shotgun","smg","burst","ar","lmg","sniper","launcher"]}
+PASS  sandbox spot found   [{"x":264.6674695352689,"z":115.4841683945548,"y":7.611153311637958}]
+    P-9 SIDEARM      t0 light   mag  15 rpm 340  close      26  far(70m)    19.2  head      52  dps  147.3
+    BS-12 BREACHER   t1 shells  mag   6 rpm  78  close     104  far(23.400000000000002m)    7.27  head     156  dps  135.2 pellets x8
+    VX-9 VIPER       t2 light   mag  32 rpm 900  close      15  far(46.800000000000004m)    6.17  head      24  dps    225 auto
+    AR-3 BURST       t2 medium  mag  24 rpm 820  close      24  far(70m)      22  head      48  dps    328
+    RANGER AR        t3 medium  mag  30 rpm 600  close      31  far(70m)   29.87  head    65.1  dps    310 auto
+    M-90 HAMMER      t4 heavy   mag  75 rpm 700  close      29  far(70m)   15.44  head    52.2  dps  338.3 auto
+    LONGSHOT .50     t4 heavy   mag   5 rpm  44  close     118  far(70m)     118  head     295  dps   86.5 scope
+    THUMPER GL       t4 rockets mag   4 rpm  50  close  346.23  far(70m)    44.7  head  346.23  dps  288.5
+PASS  at least 6 weapons exist   [8 weapons]
+PASS  every weapon deals damage at point blank   [all]
+PASS  every bullet weapon hits harder on a headshot   [all single-projectile weapons]
+PASS  the grenade launcher damages through its projectile + splash   [launcher 346.23 dmg at 4m]
+PASS  the shotgun still rewards aiming for the head   [156 dmg]
+PASS  5 ammo types are in use   [light,shells,medium,heavy,rockets]
+PASS  all 5 rarity tiers are represented   [0,1,2,3,4]
+PASS  sniper hits hardest per bullet   [sniper 118 vs next 104]
+PASS  shotgun fires multiple pellets   [8]
+PASS  shotgun damage collapses with range   [104 -> 7.27]
+PASS  smg has the fastest fire rate of the automatics   [smg 900 rpm]
+PASS  smg damage falls off badly with range   [per hit 15 -> 8.23]
+PASS  assault rifle keeps its damage at range (falloff only, per hit)   [per hit 31 -> 29.87]
+PASS  a spray weapon misses more at range than point blank   [smg hits 12/12 close vs 9/12 at range]
+    AR is the accurate one: 12/12 close vs 12/12 at 70m while aiming
+PASS  lmg has the biggest magazine   [75 rounds]
+PASS  sniper is scoped   [scope=true]
+PASS  burst rifle fires 3-round bursts   [3]
+PASS  weapons have meaningfully different DPS   [86.5 .. 338.3 dps]
+PASS  every weapon reloads and eats reserve ammo   [all 8 clean]
+    reload times: pistol=1.35s shotgun=2.6s smg=1.95s burst=2.2s ar=2.35s lmg=4.6s sniper=3.2s launcher=3.4s
+PASS  ammo reserves respect their cap   [{"got":260,"capped":260,"limit":260,"extra":0}]
+PASS  5 weapon slots fill up   [pistol,smg,ar,sniper,lmg]
+PASS  a 6th pickup swaps in place instead of overflowing   [SWAPPED: BS-12 BREACHER]
+PASS  aiming down sights always tightens the cone   [{"hip":1,"ads":0.22,"crouchAds":0.15839999999999999}]
+PASS  crouching tightens the cone further   [{"hip":1,"ads":0.22,"crouchAds":0.15839999999999999}]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 201 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+25/25 checks passed; 0 console problem(s)

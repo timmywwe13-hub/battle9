@@ -1,0 +1,19 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  probe: {"cam":[27.094088149278456,10.532722170258051,-193.19481327020674],"camDir":[0,0,-1],"playerYaw":0,"crouch":false,"chestDist":73.58,"camHit":{"t":73.35,"bot":"BotSlayer_X","head":false,"world":false},"aim":[27.09,10.46,-266.54],"targetChest":[26.7,10.46,-266.77],"muzzle":[26.92,10,-197.72],"muzzleToAim":68.82,"dirDot":1,"muzzleHit":{"t":68.82,"bot":"BotSlayer_X","head":false,"world":false},"rayYAtTarget":10.464,"chestY":10.462,"verticalMiss":0.002}
+  legacy-aim replay: {"playerYaw":0,"camY":10.69,"pitch":-0.0033,"camHitsBot":"BotSlayer_X","camT":69.54,"camWorld":false,"hits":12,"perShot":29.87}
+  real third-person camera: {"hits":6,"perShot":14.93,"camBehind":1.75}
+FAIL  aiming from the real third-person camera hits at 70 m   [6/12 hits, 14.93 dmg per shot]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 153 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+0/1 checks passed; 0 console problem(s)
+  FAILED: aiming from the real third-person camera hits at 70 m

@@ -1,0 +1,20 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+state PLAYING armed true
+{"gunFound":true,"gunPos":[-204.72,11.16,-176.77],"handR":[-205.03,11.31,-176.92],"handToGun":0.38,"gunDirWorld":[0,-0.04,-1],"bodyDirWorld":[0,0,-1],"gunToBodyDeg":2.3,"camDir":[0,-0.02,-1],"playerYaw":0,"adsT":1}
+  shot _diag-aim-front
+  shot _diag-aim-back
+  shot _diag-aim-left
+  shot _diag-aim-right
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 99 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+0/0 checks passed; 0 console problem(s)

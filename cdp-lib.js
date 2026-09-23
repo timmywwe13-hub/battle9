@@ -8,7 +8,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const PORT = 9411;
+/* Overridable so several scenarios can be exercised at the same time: each run
+   gets its own browser and its own debug port. */
+const PORT = Number(process.env.CDP_PORT || 9411);
 const BROWSERS = [
   process.env.PROGRAMFILES + '\\Google\\Chrome\\Application\\chrome.exe',
   process.env['PROGRAMFILES(X86)'] + '\\Google\\Chrome\\Application\\chrome.exe',
@@ -62,6 +64,7 @@ function connect(wsUrl) {
   let nextId = 1;
   const pending = new Map();
   const logs = [];
+  const notes = [];
   ws.onmessage = ev => {
     const msg = JSON.parse(ev.data);
     if (msg.id && pending.has(msg.id)) {
@@ -73,6 +76,11 @@ function connect(wsUrl) {
     }
     if (msg.method === 'Runtime.consoleAPICalled' && (msg.params.type === 'error' || msg.params.type === 'warning')) {
       logs.push({ kind: msg.params.type,
+        text: msg.params.args.map(a => a.value !== undefined ? String(a.value) : (a.description || a.type)).join(' ') });
+    } else if (msg.method === 'Runtime.consoleAPICalled' && (msg.params.type === 'log' || msg.params.type === 'info')) {
+      /* informational lines (the character loader reports through these) are
+         shown but never counted as problems */
+      notes.push({ kind: msg.params.type,
         text: msg.params.args.map(a => a.value !== undefined ? String(a.value) : (a.description || a.type)).join(' ') });
     } else if (msg.method === 'Runtime.exceptionThrown') {
       const d = msg.params.exceptionDetails;
@@ -86,7 +94,7 @@ function connect(wsUrl) {
     pending.set(id, { res, rej });
     ws.send(JSON.stringify({ id, method, params: params || {} }));
   });
-  return { ws, send, ready, logs };
+  return { ws, send, ready, logs, notes };
 }
 
 module.exports = { launch, connect, sleep, fileUrl, findBrowser };

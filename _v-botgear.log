@@ -1,0 +1,31 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  at spawn: {"bots":99,"armed":0,"withMag":0,"withWeapons":0,"withItems":0,"sample":{"name":"SilentSam","weapon":null,"mag":0,"kits":0},"playerWeapons":0,"playerKits":0}
+PASS  bots land with no weapon in hand   [0 armed]
+PASS  bots land with empty magazines   [0 mags / 0 kits]
+PASS  bots land with no free consumables either   [0 carrying items]
+PASS  the player also starts empty handed   [{"bots":99,"armed":0,"withMag":0,"withWeapons":0,"withItems":0,"sample":{"name":"SilentSam","weapon":null,"mag":0,"kits":0},"playerWeapons":0,"playerKits":0}]
+  after 30s: {"state":"PLAYING","alive":97,"armed":58,"fraction":0.6,"mags":746,"tiers":[28,9,12,6,3],"t":31}
+PASS  some bots have found guns within 30 s   [58/97 armed]
+PASS  the ones that armed themselves have loaded magazines   [746 rounds spread around]
+  after 90s: {"state":"PLAYING","alive":81,"armed":52,"fraction":0.64,"mags":560,"tiers":[24,10,13,3,2],"t":92}
+PASS  most surviving bots armed themselves by looting   [64% armed (52/81)]
+PASS  guns of many rarities are in bot hands   [tiers 24/10/13/3/2]
+  combat: {"botKills":18,"dead":18,"unarmedDead":18,"botsWithGunMesh":52}
+PASS  armed bots actually fight each other   [18 bot-on-bot kills]
+PASS  the lobby is being whittled down   [18 eliminated]
+  gun mesh: {"armedName":"SilentSam","armedWeapon":"shotgun","armedScale":1.68,"unarmedScale":0}
+PASS  an armed bot renders a gun model   [scale 1.68]
+PASS  an unarmed bot renders no gun   [scale 0]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 307 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+12/12 checks passed; 0 console problem(s)

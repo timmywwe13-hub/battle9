@@ -1,0 +1,35 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  Character.state {"status":"ready","detail":"","source":"freddy_fazzbear.glb.js","meshes":6,"textures":3,"height":1.74,"loadMs":257}
+PASS  vendor/GLTFLoader.js gives the page a GLTFLoader   [function]
+PASS  the character file loads   [ready ]
+PASS  the file brought its meshes and textures   [6 meshes, 3 textures]
+PASS  a match reaches the ground   [PLAYING]
+  player model: {"hasHolder":true,"rigged":true,"bones":14,"rigMeshes":36,"triangles":18068,"height":1.77,"primitivesHidden":true,"botBody":"CapsuleGeometry","botHead":"SphereGeometry","botInstanced":true}
+PASS  the player character model is in the scene
+PASS  the fallback humanoid primitives are hidden
+PASS  the static model was rigged onto hinges   [14 bones, 36 meshes, 18068 triangles]
+PASS  the rig has a spine, a neck, two arms and two legs   [14 bones]
+PASS  the character is player sized   [1.77 m]
+PASS  the bots are still beans (capsules + spheres, one instanced mesh)   [CapsuleGeometry / SphereGeometry]
+  stride swing {"hipL":{"range":1.024,"lo":-0.721,"hi":0.303},"hipR":{"range":1.006,"lo":-0.731,"hi":0.274},"kneeL":{"range":0.976,"lo":0.208,"hi":1.183},"kneeR":{"range":0.831,"lo":0.156,"hi":0.987},"armL":{"range":0.629,"lo":-0.366,"hi":0.263},"armR":{"range":0.779,"lo":-0.498,"hi":0.281},"minKnee":0.156}
+PASS  the legs swing while running   [hip swing 1.024 / 1.006 rad over one cycle]
+PASS  the arms swing while running   [shoulder swing 0.629 / 0.779 rad]
+PASS  the knees only fold backwards (never through the thigh)   [knee minimum 0.156 rad]
+  poses: {"idleArm":-0.02,"crouchKnee":1.1,"crouchHip":-0.55,"airArm":-2.1,"fallArm":-0.42,"fallArmOut":1.05,"armedArm":-1.3,"armedElbow":-0.28}
+PASS  crouching folds the knees   [1.1]
+PASS  gliding raises the arms overhead   [-2.1]
+PASS  freefall spreads the arms out instead of overhead   [-0.42 rad up, 1.05 rad out]
+PASS  holding a gun lifts the arms into an aiming pose   [right shoulder -1.3, elbow -0.28]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 257 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+17/17 checks passed; 0 console problem(s)

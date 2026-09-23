@@ -21,7 +21,7 @@ window.addEventListener('unhandledrejection', function (e) {
 
 async function main() {
   const { proc, profile, wsUrl } = await lib.launch();
-  const { ws, send, ready, logs } = lib.connect(wsUrl);
+  const { ws, send, ready, logs, notes } = lib.connect(wsUrl);
   await ready;
   await send('Runtime.enable');
   await send('Log.enable');
@@ -50,6 +50,25 @@ async function main() {
 
   const ctx = { evaluate, check, sleep: lib.sleep, logs, send };
 
+  /* Wait for the game to finish booting before the scenario touches it: the
+     start screen is wired up during App.init, and a scenario that clicks Play
+     before that finds empty bot arrays. */
+  let boot = null;
+  for (let i = 0; i < 60; i++) {
+    try {
+      boot = await evaluate(`(function () {
+        try {
+          return { state: (typeof App !== 'undefined') ? App.state : null,
+                   loaded: document.getElementById('bootLoading').classList.contains('hidden'),
+                   error: !document.getElementById('bootError').classList.contains('hidden') };
+        } catch (e) { return null; }
+      })()`);
+    } catch (e) { boot = null; }
+    if (boot && (boot.error || (boot.state === 'MENU' && boot.loaded))) break;
+    await lib.sleep(500);
+  }
+  console.log('boot: ' + JSON.stringify(boot));
+
   try {
     await require('./scenarios/' + scenario + '.js')(ctx);
   } catch (e) {
@@ -71,6 +90,10 @@ async function main() {
   console.log('\n--- console errors / warnings seen ---');
   if (!all.length) console.log('  (clean)');
   all.slice(0, 40).forEach(l => console.log('  [' + l.kind + '] ' + l.text.slice(0, 400)));
+  if (notes.length) {
+    console.log('\n--- informational logs ---');
+    notes.slice(-10).forEach(n => console.log('  ' + n.text.slice(0, 220)));
+  }
 
   const failed = results.filter(r => !r.ok);
   console.log('\n--- summary ---');

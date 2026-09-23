@@ -1,0 +1,19 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  single lethal hit: {"before":{"alive":true,"hp":100,"shield":0,"helm":0,"vest":0,"name":"BushWookie99"},"ret":9999,"afterHp":0,"afterAlive":false,"killsBefore":0,"killsAfter":1,"botsAlive":98,"appAlive":100,"sameObject":"index0"}
+PASS  lethal hit kills the bot   [0]
+PASS  kill credited   [0 -> 1]
+  mass wipe: {"attempted":98,"died":98,"zeroReturns":[],"zeroCount":0,"stillAlive":[],"stillAliveCount":0,"kills":99,"botsAlive":0,"state":"GAME_OVER","placement":1}
+PASS  every attempted bot died   [98 attempted, 98 died]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 232 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+3/3 checks passed; 0 console problem(s)

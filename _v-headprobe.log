@@ -1,0 +1,59 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+{
+ "cam": [
+  -87.28,
+  13.63,
+  202.79
+ ],
+ "camToHead3D": 5.73,
+ "pitch": -0.08,
+ "yaw": -0.078,
+ "camHit": {
+  "t": 5.45,
+  "bot": "BulletMagnet",
+  "head": true,
+  "world": false
+ },
+ "muzzle": [
+  -87.58,
+  12.75,
+  200.13
+ ],
+ "aim": [
+  -87.71,
+  13.19,
+  197.37
+ ],
+ "headSphereCentre": [
+  -87.73,
+  13.17,
+  197.09
+ ],
+ "muzzleToAim": 2.8,
+ "muzzleHit": {
+  "t": 2.8,
+  "bot": "BulletMagnet",
+  "head": true,
+  "world": false
+ },
+ "torsoFirstT": -1,
+ "headFirstT": 2.8,
+ "camTorsoT": -1,
+ "camHeadT": 5.45,
+ "damage": 65.1,
+ "damage2": 130.2
+}
+PASS  probe ran   [ok]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 220 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+1/1 checks passed; 0 console problem(s)

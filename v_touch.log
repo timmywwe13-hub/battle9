@@ -1,0 +1,76 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  default on a desktop: {"on":false,"device":false,"setting":"auto","root":false,"cls":false}
+PASS  a mouse-only browser keeps the touch layer off   [{"on":false,"device":false,"setting":"auto","root":false,"cls":false}]
+  layer: {"on":true,"visible":true,"cls":true,"buttons":15,"w":52,"h":32,"stick":true,"knob":true,"quality":"med","parent":"app","mapHint":"TAP — CLOSE MAP","pickHint":"TAP","dropHint":"STICK STEERS  •  JUMP DEPLOYS GLIDER"}
+PASS  the on-screen layer builds and shows itself   [{"on":true,"visible":true,"cls":true,"buttons":15,"w":52,"h":32,"stick":true,"knob":true,"quality":"med","parent":"app","mapHint":"TAP — CLOSE MAP","pickHint":"TAP","dropHint":"STICK STEERS  •  JUMP D]
+PASS  every control is there   [15 buttons]
+PASS  buttons are thumb sized   [52x32]
+PASS  it is mounted over the play field   [app]
+PASS  the phone preset steps the quality down to medium   [med]
+PASS  key prompts are re-worded for fingers   [TAP — CLOSE MAP / TAP / STICK STEERS  •  JUMP DEPLOYS GLIDER]
+  hit test: {"blocked":[],"chip":"slot sel","chipTappable":true}
+PASS  no button is covered by anything   []
+PASS  the HUD weapon chips are tappable in touch mode   [slot sel]
+PASS  a thumb on the left half takes the stick   [{"mx":0,"mz":0,"yaw":-1.1332,"pitch":-0.32,"live":true}]
+  stick forward: {"mx":0,"mz":0.7253,"yaw":-1.1332,"pitch":-0.32,"live":true}
+PASS  pushing the stick forward moves you forward   [{"mx":0,"mz":0.7253,"yaw":-1.1332,"pitch":-0.32,"live":true}]
+PASS  pushing it right sidesteps right   [{"mx":0.7253,"mz":0,"yaw":-1.1332,"pitch":-0.32,"live":true}]
+  travel + dead zone: {"side":{"mx":1,"mz":0,"mag":1},"diag":{"mx":0.8824,"mz":0.4706,"mag":1},"dead":{"mx":0,"mz":0,"mag":0}}
+PASS  a full push saturates the axis at 1   [{"mx":1,"mz":0,"mag":1}]
+PASS  a diagonal push is capped at unit length, never more   [{"mx":0.8824,"mz":0.4706,"mag":1}]
+PASS  a resting thumb inside the dead zone gives no input   [{"mx":0,"mz":0,"mag":0}]
+PASS  letting go stops the movement   [{"mx":0,"mz":0,"yaw":-1.1332,"pitch":-0.32,"live":false}]
+  look drag: {"dragged":{"yaw":0.4805,"pitch":0.2402},"back":{"yaw":0,"pitch":0},"clamped":-1.45,"axes":{"mx":0,"mz":0}}
+PASS  dragging right turns the view right   [{"yaw":0.4805,"pitch":0.2402}]
+PASS  dragging up looks up   [{"yaw":0.4805,"pitch":0.2402}]
+PASS  dragging back to where it started restores the view   [{"yaw":0,"pitch":0}]
+PASS  vertical look is clamped   [-1.45]
+PASS  a look drag never moves the player   [{"mx":0,"mz":0}]
+  fire: {"shot":{"firing":true,"fired":1},"after":false,"mag":29}
+PASS  the trigger pulls the trigger   [{"firing":true,"fired":1}]
+PASS  releasing the trigger stops the shooting   [{"shot":{"firing":true,"fired":1},"after":false,"mag":29}]
+  combat buttons: {"aimOn":true,"aimOff":false,"jumpQueued":true,"reloading":true,"crouchOn":true,"crouching":true,"crouchOff":false,"sprintOn":true,"sprintOff":false}
+PASS  AIM toggles the sights on and back off   [{"aimOn":true,"aimOff":false,"jumpQueued":true,"reloading":true,"crouchOn":true,"crouching":true,"crouchOff":false,"sprintOn":true,"sprintOff":false}]
+PASS  JUMP queues a jump   [true]
+PASS  RELOAD starts a reload   [true]
+PASS  CROUCH toggles, and the player really crouches   [{"aimOn":true,"aimOff":false,"jumpQueued":true,"reloading":true,"crouchOn":true,"crouching":true,"crouchOff":false,"sprintOn":true,"sprintOff":false}]
+PASS  SPRINT toggles   [{"aimOn":true,"aimOff":false,"jumpQueued":true,"reloading":true,"crouchOn":true,"crouching":true,"crouchOff":false,"sprintOn":true,"sprintOff":false}]
+  sprinting: {"sprinting":true,"stamina":99,"max":100,"mz":0.908}
+PASS  stick forward plus SPRINT really sprints   [{"sprinting":true,"stamina":99,"max":100,"mz":0.908}]
+  items: {"ready":true,"tookAimed":true,"readyCleared":true,"using":"bandage","cancelled":true,"badge":"BAND 2","slot":1}
+PASS  the pickup button lights up and takes what you are facing   [{"ready":true,"tookAimed":true,"readyCleared":true,"using":"bandage","cancelled":true,"badge":"BAND 2","slot":1}]
+PASS  a heal chip taps on and taps off   [{"ready":true,"tookAimed":true,"readyCleared":true,"using":"bandage","cancelled":true,"badge":"BAND 2","slot":1}]
+PASS  the chip carries the count   [BAND 2]
+PASS  SWAP cycles the weapon slots   [1]
+  slot chips: {"second":1,"empty":1,"back":0,"slots":5}
+PASS  tapping a weapon chip picks that slot, an empty one does nothing   [{"second":1,"empty":1,"back":0,"slots":5}]
+  overlays: {"mapOpen":true,"mapClosed":false,"scoresOpen":true,"scoresClosed":true,"paused":true,"firingAfterPause":false,"axesAfterPause":0}
+PASS  MAP opens, and a tap closes it again   [{"mapOpen":true,"mapClosed":false,"scoresOpen":true,"scoresClosed":true,"paused":true,"firingAfterPause":false,"axesAfterPause":0}]
+PASS  SCORES toggles the scoreboard   [{"mapOpen":true,"mapClosed":false,"scoresOpen":true,"scoresClosed":true,"paused":true,"firingAfterPause":false,"axesAfterPause":0}]
+PASS  PAUSE pauses, and nothing is left held down   [{"mapOpen":true,"mapClosed":false,"scoresOpen":true,"scoresClosed":true,"paused":true,"firingAfterPause":false,"axesAfterPause":0}]
+  cleanup: {"afterDeath":{"firing":false,"sprint":false,"mz":0},"afterBlur":{"firing":false,"sprint":false,"mz":0}}
+PASS  dying lets go of every button   [{"firing":false,"sprint":false,"mz":0}]
+PASS  a tab-away lets go of every button   [{"firing":false,"sprint":false,"mz":0}]
+  pointer lock: {"whileTouch":0,"whileMouse":1}
+PASS  no pointer lock is ever asked for on a touch device   [{"whileTouch":0,"whileMouse":1}]
+  back on the desktop: {"on":false,"cls":false,"visible":false,"mx":0,"mz":0,"sprint":false,"firing":false,"mapHint":"M / ESC — CLOSE MAP","pickHint":"E","mouseAds":true}
+PASS  the layer hides itself again   [{"on":false,"cls":false,"visible":false,"mx":0,"mz":0,"sprint":false,"firing":false,"mapHint":"M / ESC — CLOSE MAP","pickHint":"E","mouseAds":true}]
+PASS  nothing is left stuck when it goes away   [{"on":false,"cls":false,"visible":false,"mx":0,"mz":0,"sprint":false,"firing":false,"mapHint":"M / ESC — CLOSE MAP","pickHint":"E","mouseAds":true}]
+PASS  the key prompts come back   [M / ESC — CLOSE MAP / E]
+PASS  the mouse path still works with the layer off   [true]
+  settings UI: {"wentOff":false,"wentOn":true,"sens":2.5,"shown":"2.5×"}
+PASS  the touch setting drives the layer from the menu   [{"wentOff":false,"wentOn":true,"sens":2.5,"shown":"2.5×"}]
+PASS  the touch look slider is live   [{"wentOff":false,"wentOn":true,"sens":2.5,"shown":"2.5×"}]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 186 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+46/46 checks passed; 0 console problem(s)

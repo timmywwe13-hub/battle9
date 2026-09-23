@@ -1,0 +1,20 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+PASS  probe installed   [ok]
+  { "t": 71, "alive": 82, "armed": 67, "states": { "loot": 32, "engage": 46, "rotate": 4 }, "botKills": 17, "dead": 17, "nearestEnemy": { "min": 3, "median": 15, "within60": 63, "total": 67 }, "counter": { "fireAt": 27548, "losBlocked": 3707, "shots": 1639, "dmg": 321, "engages": 198, "sights": 17016, "seen": 233 } }
+PASS  bots are engaging each other   [198 engage transitions]
+PASS  bots are shooting   [1639 rounds fired]
+PASS  kills are happening   [17 bot-vs-bot kills]
+  gear: {"lootItems":344,"unarmedWithGunIn500m":15,"armed":67,"alive":82,"t":71,"nearSample":{"x":-18,"z":-39}}
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 384 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+4/4 checks passed; 0 console problem(s)

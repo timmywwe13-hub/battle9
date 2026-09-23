@@ -1,0 +1,50 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  facing north: dir=["0.00","-1.00"]  mouse right -> yaw 0.264 dir.x 0.26
+PASS  starting state faces north (-Z)   [dir=(0,-1)]
+PASS  mouse RIGHT turns the view right (+X, yaw increases)   [yaw 0.264 dir.x 0.26]
+PASS  mouse LEFT turns the view left (yaw decreases)   [yaw -0.264]
+PASS  vertical look is NOT inverted (mouse down = look down)   [pitch -0.264]
+PASS  mouse up looks up   [pitch 0.264]
+  model: {"visible":true,"children":11,"hasCapsule":true,"hasSphere":true,"height":1.77,"dx":0,"dz":0,"dy":0,"rotY":3.365,"playerYaw":-0.223,"camDist":0.54,"camAboveFeet":1.6}
+PASS  the player has a visible character in the world   [11 parts, 1.77 m tall]
+PASS  the character is a humanoid built from primitives   [capsule + sphere]
+PASS  the character stands exactly on the player position   [offset (0,0,0)]
+PASS  the character faces the camera aim direction   [rotY 3.365 vs PI-yaw 3.365]
+  camera: {"dist":0.54,"above":1.6,"behind":-0.98,"moved":0.57,"stillBehind":-0.98}
+PASS  camera sits behind the player   [dot -0.98]
+PASS  camera sits above the player   [1.6 m up]
+FAIL  camera holds a third-person distance   [0.54 m]
+FAIL  camera orbits around the player when the mouse moves   [moved 0.57 m]
+PASS  camera stays behind after orbiting   [dot -0.98]
+  collision: {"foundCollider":true,"blockedDist":1.39,"openDist":3.6,"camAboveGround":4.84,"minDist":0.55}
+PASS  camera is pulled in when a wall is behind the player   [1.39 m at a wall vs 3.6 m in the open]
+PASS  camera never comes closer than the minimum distance   [1.39 m]
+PASS  camera stays above the ground when looking down   [4.84 m above terrain]
+  movement: {"forwardDot":1,"moved":2.87,"rightDot":0.98}
+PASS  W walks forward, away from the camera   [dot 1 over 2.87 m]
+PASS  D strafes to the camera right   [dot 0.98]
+  trigger: {"semiAutoFired":1,"autoFirst":1,"autoHeld":6,"autoReleased":6}
+PASS  a semi-auto pistol fires on click (the reported bug)   [mag -1]
+PASS  an automatic fires exactly once on the press frame   [1]
+PASS  an automatic keeps firing while the button is held   [6 rounds]
+PASS  releasing the mouse stops the fire   [6 -> 6]
+  visibility: {"scopedHidden":true,"adsVisible":true,"deadHidden":true,"backVisible":true}
+PASS  the character hides while scoped so the scope stays clear
+PASS  the character is visible while just aiming
+PASS  the character is hidden when dead
+PASS  the character comes back when alive again
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 389 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+25/27 checks passed; 0 console problem(s)
+  FAILED: camera holds a third-person distance
+  FAILED: camera orbits around the player when the mouse moves

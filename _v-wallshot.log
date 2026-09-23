@@ -1,0 +1,28 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+PASS  scenario setup ran   [LavaLou]
+  through a house: {"losBlocked":true,"dist":20.2,"damageEvents":0,"ammoSpent":0,"tracers":0,"playerHp":1000000000,"hpLost":0}
+PASS  the wall really does block the line of fire   [distance 20.2 m across the building]
+PASS  a bot deals NO damage through a wall   [0 damage events, player lost 0 hp]
+PASS  it does not even fire: no ammo burned   [0 rounds spent]
+PASS  no tracer is drawn through the building   [0 tracers]
+  in the open: {"los":true,"damageEvents":492,"hpLost":19479,"ammoSpent":1}
+PASS  with a clear line the bot does shoot and damage   [492 hits, 19479 hp lost]
+  tracer audit: {"tracers":3486,"checked":3486,"throughWalls":0,"matchTime":128,"alive":60}
+PASS  the match produced tracers to audit   [3486 of 3486 checked over 128 s]
+PASS  no tracer passes through a wall or the ground   [0 penetrating tracers]
+  match invariant: {"bullets":287,"splash":9,"violations":0,"sample":[],"matchTime":208}
+PASS  a real match produced bullet damage to audit   [287 bullet hits (9 splash ignored) at 208 s]
+PASS  every bullet hit in a live match had a clear line of fire   [0 through-wall hits none]
+(ignored 5 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 267 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+10/10 checks passed; 0 console problem(s)

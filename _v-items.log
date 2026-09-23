@@ -1,0 +1,38 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  icons: {"missing":[],"count":15,"arPrefix":"data:image/png;base64,","arBytes":2242,"emptyKey":null}
+PASS  every weapon and consumable has a baked 3D icon   [15/15 (none missing)]
+PASS  icons are real rendered images   [2242 bytes for the AR]
+PASS  an unknown key yields null (text fallback path)
+PASS  each weapon renders its own distinct model   [{"arVsPistol":true,"arVsSniper":true,"pistolVsSniper":true}]
+  bars: [{"hasImg":true,"isPng":true,"src":"data:image/png;","imgVisible":true,"spanVisible":false,"spanText":"-","alt":"RANGER AR"},{"hasImg":true,"isPng":true,"src":"data:image/png;","imgVisible":true,"spanVisible":false,"spanText":"-","alt":"LONGSHOT .50"},{"hasImg":true,"isPng":false,"src":null,"imgVisible":false,"spanVisible":true,"spanText":"-","alt":""},{"hasImg":true,"isPng":false,"src":null,"imgVisible":false,"spanVisible":true,"spanText":"-","alt":""},{"hasImg":true,"isPng":false,"src":null,"imgVisible":false,"spanVisible":true,"spanText":"-","alt":""}]
+  consumables: [{"text":"6x2","imgs":1,"imgShown":true},{"text":"7x1","imgs":1,"imgShown":true},{"text":"8x3","imgs":1,"imgShown":true},{"text":"Gx1","imgs":1,"imgShown":true}]
+PASS  filled slots show a rendered weapon model   [slot 1 img=data:image/png; alt=RANGER AR]
+PASS  the bar shows no weapon *name* text   [slot text="1-2-3-4-5-"]
+PASS  the model is still named for accessibility (alt/tooltip)   [RANGER AR]
+PASS  empty slots stay blank
+PASS  consumables show models plus counts, not names   [row text="6x27x18x3Gx1"]
+PASS  the old floating loot name tags are gone from the DOM
+  shield: {"found":true,"at0":{"visible":false,"opacity":0.3},"at50":{"visible":true,"opacity":0.21,"radius":0.839},"at100":{"visible":true,"opacity":0.3,"radius":0.964},"flash":0.65,"settled":0.3,"hiddenAgain":false}
+PASS  the character carries a shield bubble   [ok]
+PASS  the bubble is hidden with no shield   [visible=false]
+PASS  the bubble appears and grows with shield   [0.839 -> 0.964 m]
+PASS  it glows brighter the more shield you have   [0.21 -> 0.3]
+PASS  it flashes when the shield absorbs a hit   [0.65 vs settled 0.3]
+PASS  the bubble disappears when the shield is gone
+  bot aim at 10 m: {"shots":4000,"hits":596,"rate":0.149,"bakedCap":0.45,"accuracy":0.42}
+PASS  bots do fire at the player   [4000 shots]
+PASS  bot accuracy against the human is low (they miss a lot)   [hit rate 15% at 10 m]
+PASS  bots still land some shots (not harmless)   [15% hit rate]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 327 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+19/19 checks passed; 0 console problem(s)

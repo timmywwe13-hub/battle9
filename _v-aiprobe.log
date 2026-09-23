@@ -1,0 +1,29 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+PASS  instrumentation installed   [instrumented]
+  after 20s: {"appState":"PLAYING","playerY":11.7,"playerAir":false,"playerGrounded":true,"alive":98,"states":{"loot":59,"engage":37,"rotate":1},"probe":{"damage":37,"botDamage":37,"botToBot":37,"botToPlayer":0,"playerToBot":0,"lethal":4,"botAttackerKills":0,"sightCalls":844,"sightFound":41,"sightLosFail":0,"sightRange0":145,"losCalls":561,"losTrue":252,"engageEntries":41,"fireAt":2633,"fireShots":211,"states":{"loot":59,"engage":37,"rotate":1},"maxBotsAlive":0}}
+  sample bots: [{"st":"loot","y":6.1,"x":292,"z":-35,"mag":15,"hp":100,"seen":false,"wp":"pistol"},{"st":"loot","y":12.9,"x":-94,"z":96,"mag":0,"hp":74,"seen":false,"wp":null},{"st":"loot","y":12.8,"x":-98,"z":113,"mag":30,"hp":100,"seen":false,"wp":"ar"},{"st":"loot","y":10.9,"x":-10,"z":109,"mag":0,"hp":100,"seen":false,"wp":null}]
+PASS  player landed   [PLAYING y=11.7]
+PASS  bots land and leave drop state   [{"loot":59,"engage":37,"rotate":1}]
+PASS  bot vision ran   [844 sight checks]
+PASS  bots find enemies in range   [145 candidates found]
+PASS  LOS is clear sometimes   [252/561]
+  after 80s: {"alive":75,"states":{"loot":29,"engage":40,"rotate":3,"heal":2},"engaged":40,"damage":415,"botToBot":415,"botToPlayer":0,"shots":2087,"sightFound":281,"engageEntries":248,"avgMag":6.3,"avgY":9.7,"playerHp":100}
+PASS  bots entered engage state   [248 entries]
+PASS  bots fired shots at each other   [2087 shots]
+PASS  bots dealt damage   [415 damage events]
+PASS  bot-vs-bot combat happened   [415 events]
+  duel: {"shots":1,"steps":278,"playerHp":73,"playerAlive":true,"state":"PLAYING"}
+PASS  bots engage and damage the player when they meet   [1 hits on the player after 278 steps (hp 73)]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 293 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+11/11 checks passed; 0 console problem(s)

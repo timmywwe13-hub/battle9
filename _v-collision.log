@@ -1,0 +1,31 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  collider sizes: {"worst":{"hx":8.15422239759937,"hz":8.376774943200871,"r":5.6},"total":939}
+PASS  no collider is wider than a real structure (the wing was a 26 m box)   [widest half-extent 8.15422239759937 / 8.376774943200871 m]
+PASS  no collider is a giant cylinder (was 13 m on the wing)   [widest cylinder radius 5.6 m]
+PASS  the collider count is sane   [939 colliders]
+  wing: {"airBlocks":0,"realBlocks":0,"free":7,"n":7,"blockedRays":11}
+PASS  the crashed-plane wing never blocks the ground under it   [0/7 invisible-wall points (7 free, 0 blocked by real geometry)]
+PASS  the wing still blocks bullets / line of sight   [11/11 rays blocked]
+  fence: {"fenceCount":298,"onLine":6,"awayBlocked":0}
+PASS  fence colliders exist as a tight chain   [298 fence segments]
+PASS  the fence line itself blocks you   [6/6 on-line points]
+PASS  the air beside the fence is free   [0 beside-fence points blocked]
+  building: {"blockedSides":3,"passableSides":1,"blocked":[0,2,3],"building":{"w":13.48944626096636,"d":14.594304631929845,"y":8.394827606636204}}
+PASS  most building sides block you   [3/4 sides blocked]
+PASS  one building side has a real door gap   [1/4 sides passable]
+  walkability: {"samples":483,"buried":2,"fraction":0.004,"worstPush":1.82,"worstAt":{"x":-17,"z":-8}}
+PASS  almost every ground point is walkable   [0.4% of 483 points sit inside a prop]
+PASS  no invisible-box push-outs (the old 26 m wing bug)   [worst push 1.82 m at {"x":-17,"z":-8}]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 305 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+12/12 checks passed; 0 console problem(s)

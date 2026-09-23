@@ -1,0 +1,31 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  Character.anims.status ready  (14 hinges)
+PASS  the locomotion sidecar loads   [ready ]
+PASS  the rig got the clips   [the rig is playing them]
+  baked tables {"walkFrames":61,"runFrames":42,"walkDur":1.0167,"runDur":0.7,"walkHip":0.994,"runHip":1.176,"walkKnee":0.981,"runKnee":1.637,"walkBob":[0.0521,0.025,-0.027],"runBob":[0.0714,0.033,-0.039],"hinges":14}
+PASS  both cycles are full length, a second of walk and less of run   [61 / 42 frames, 1.0167 s / 0.7 s]
+PASS  every hinge of the rig has a track   [14 hinges]
+PASS  the retargeted stride is real, and the run swings wider than the walk   [hip 0.994 -> 1.176 rad, knee 0.981 -> 1.637 rad]
+PASS  the clips carry their own bounce   [walk 0.0521 m, run 0.0714 m peak to peak]
+  driven by speed {"walkWeight":0.95,"walkRun":0,"walkLegs":0.991,"walkArms":0.63,"runShare":0.982,"runWeight":1,"sprintLegs":1.175,"slowCadence":2,"fastCadence":3,"bobRange":0.052,"airWeight":0,"airArm":-2.1,"fallArm":-0.42,"fallArmOut":1.05,"armedArm":-1.3,"armedLegs":0.991,"noClipWeight":0.011,"noClipLegs":0.864}
+PASS  the cycle drives the limbs at walking pace   [clip weight 0.95, hip swing 0.991 rad]
+PASS  the run cycle takes over when sprinting   [run share 0.982, hip swing 1.175 rad]
+PASS  the cadence follows the speed   [2 hip passes at 3 m/s vs 3 at 6.5 m/s]
+PASS  the bounce comes out of the clip   [0.052 m peak to peak at walking pace]
+PASS  gliding hands the body back to the procedural pose   [clip weight 0, arm -2.1]
+PASS  freefall spreads the arms instead of raising them overhead   [freefall arm -0.42 rad up / 1.05 rad out]
+PASS  holding a gun hands the arms back while the legs keep striding   [shoulder -1.3, hip swing 0.991 rad]
+PASS  with no sidecar the sine cycle still moves him   [clip weight 0.011, hip swing 0.864 rad]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 153 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+14/14 checks passed; 0 console problem(s)

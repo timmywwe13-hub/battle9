@@ -1,0 +1,36 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  pointerdown(2) -> true, pointerup(2) -> false, mouse fallback ok -> true
+PASS  a right-button pointerdown engages ADS   [ads=true]
+PASS  releasing it drops ADS   [ads=false]
+PASS  the mouse fallback still works when no pointer events arrive   [ads=true]
+PASS  the mouse echo of the same press is not handled twice   [{"afterReal":true,"afterEcho":true,"afterRelease":false}]
+PASS  a bare auxclick aims for a moment (trackpad fallback)   [{"during":true} then false]
+  toggle: {"on":true,"stillOn":true,"off":false,"backOn":true}
+PASS  toggle mode turns ADS on and keeps it after the release   [{"on":true,"stillOn":true,"off":false,"backOn":true}]
+PASS  a second click turns it off again
+PASS  an auxclick also toggles
+  V down -> true, V up -> false
+PASS  holding the aim key (V by default) engages ADS   [ads=true]
+PASS  releasing the aim key drops ADS   [ads=false]
+  rebound to Shift: {"vDown":false,"shiftDown":true,"after":false}
+PASS  the aim key is rebindable (ShiftLeft aims)   [{"vDown":false,"shiftDown":true,"after":false}]
+  clearing: {"afterMapOpen":false,"afterScoreboard":false,"afterUnlock":false,"afterDeath":false}
+PASS  opening the map clears ADS
+PASS  opening the scoreboard clears ADS
+PASS  releasing pointer lock clears ADS
+PASS  dying clears ADS
+  settings UI: {"key":"ControlLeft","toggle":true,"restored":"KeyV/false"}
+PASS  the aim key and toggle are exposed in the settings menu   [{"key":"ControlLeft","toggle":true,"restored":"KeyV/false"}]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 302 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+16/16 checks passed; 0 console problem(s)

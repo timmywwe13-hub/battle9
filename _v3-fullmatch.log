@@ -1,0 +1,43 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+PASS  match 1 started   [{"state":"DROP","alive":100,"feed":0}]
+    t=25s  alive=98  hp=100  zone=0/wait  r=470  playerAlive=true
+    t=50s  alive=90  hp=100  zone=0/shrink  r=470  playerAlive=true
+    t=75s  alive=86  hp=100  zone=0/shrink  r=432.2  playerAlive=true
+    t=100s  alive=75  hp=0  zone=0/shrink  r=400  playerAlive=false
+PASS  simulation ran cleanly   [null]
+PASS  match reached GAME_OVER   [GAME_OVER after ~100s]
+PASS  alive counter fell from 100   [min alive 75]
+PASS  zone dps escalates per phase   [1 -> 25 dps]
+PASS  bots eliminated other bots (not just the player)   [25 bot-on-bot kills]
+PASS  kill feed received entries   [3 rows]
+    death screen: {"playerAlive":false,"deathVisible":true,"victoryVisible":false,"placementText":"#76 OF 100","killerText":"Eliminated by PixelPete with AR-3 BURST","kills":"0","damage":"0","time":"1:37","state":"GAME_OVER","placement":76}
+PASS  player is dead
+PASS  death OR victory screen is showing   [death=true victory=false]
+PASS  placement is reported   [#76 OF 100]
+PASS  killer is named   [Eliminated by PixelPete with AR-3 BURST]
+PASS  stats rendered (kills/damage/time)   [0 kills, 0 dmg, 1:37]
+    spectating: {"state":"SPECTATING","name":"QuickScope_Q","panelVisible":true,"targetAlive":true}
+PASS  spectating state entered   [SPECTATING]
+PASS  spectating follows a live bot   [QuickScope_Q]
+PASS  spectate panel visible
+PASS  spectated simulation ran cleanly   [null]
+    finish: {"deaths":99,"crates":3,"lootOnGround":552,"zoneDps":25,"killedByZone":98}
+PASS  most of the lobby died over the match   [99 of 100 dead]
+PASS  supply crates were dropped during the match   [3 crates, 552 items still on the ground]
+PASS  every bot was given a placement   [98 placed]
+PASS  match played out to a single survivor   [1 alive, phase 7, r=14.2]
+PASS  zone ran through most of its phases   [phase 7 / 8]
+PASS  final zone is small (forced close quarters)   [r=14.2]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 271 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+22/22 checks passed; 0 console problem(s)

@@ -1,0 +1,78 @@
+boot: {"state":"MENU","loaded":true,"error":false}
+  match state PLAYING
+PASS  the play test got into a live match   [PLAYING]
+  shot 01-idle.png (243 KB)
+  shot 01-idle-front.png (278 KB)
+  01-idle axes {"moveX":0,"moveZ":0,"sprint":false,"crouch":false} -> {"speed":0,"weight":0,"run":0,"phase":0,"rate":0.55,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 02-walk.png (237 KB)
+  shot 02-walk-front.png (224 KB)
+  02-walk axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":false} -> {"speed":5.7,"weight":1,"run":0,"phase":0.356,"rate":1.36,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 03-sprint.png (220 KB)
+  shot 03-sprint-front.png (254 KB)
+  03-sprint axes {"moveX":0,"moveZ":1,"sprint":true,"crouch":false} -> {"speed":8.6,"weight":1,"run":1,"phase":0.404,"rate":1.9,"camReach":3.52,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 04-crouch-walk.png (228 KB)
+  shot 04-crouch-walk-front.png (293 KB)
+  04-crouch-walk axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":true} -> {"speed":2.8,"weight":0.23,"run":0,"phase":0.18,"rate":0.67,"camReach":3.6,"crouch":true,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 05-strafe-left.png (237 KB)
+  shot 05-strafe-left-front.png (269 KB)
+  05-strafe-left axes {"moveX":-1,"moveZ":0,"sprint":false,"crouch":false} -> {"speed":5.7,"weight":1,"run":0,"phase":0.878,"rate":1.36,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 06-backpedal.png (245 KB)
+  shot 06-backpedal-front.png (233 KB)
+  06-backpedal axes {"moveX":0,"moveZ":-1,"sprint":false,"crouch":false} -> {"speed":5.7,"weight":1,"run":0,"phase":0.829,"rate":1.36,"camReach":3.6,"crouch":false,"air":false,"armed":false,"alive":true,"hp":100}
+  shot 07-aim-ads.png (275 KB)
+  shot 07-aim-ads-front.png (202 KB)
+  07-aim-ads axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":false} -> {"speed":3.1,"weight":1,"run":0,"phase":0.651,"rate":0.74,"camReach":1.75,"crouch":false,"air":false,"armed":true,"alive":true,"hp":100}
+  shot 08-jump.png (279 KB)
+  shot 08-jump-front.png (299 KB)
+  08-jump axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":false} -> {"speed":5.7,"weight":1,"run":0,"phase":0.87,"rate":1.36,"camReach":1.75,"crouch":false,"air":false,"armed":true,"alive":true,"hp":100}
+  shot 09-glide.png (401 KB)
+  shot 09-glide-front.png (404 KB)
+  09-glide axes {"moveX":0,"moveZ":1,"sprint":false,"crouch":false} -> {"speed":9,"weight":0,"run":1,"phase":0.876,"rate":1.9,"camReach":1.75,"crouch":false,"air":true,"armed":true,"alive":true,"hp":100}
+  shot 10-freefall.png (393 KB)
+  shot 10-freefall-front.png (501 KB)
+  10-freefall axes {"moveX":0,"moveZ":0,"sprint":false,"crouch":false} -> {"speed":8,"weight":0,"run":1,"phase":0.501,"rate":1.9,"camReach":5.22,"crouch":false,"air":true,"armed":false,"alive":true,"hp":100}
+  airborne poses: {"free":{"up":-0.42,"out":1.05,"elbow":-0.34,"knee":0.85,"torso":-0.07},"glide":{"up":-2.1,"out":0.12,"elbow":-0.25,"knee":1.06,"torso":-0.07}}
+PASS  the freefall pose spreads the arms instead of throwing them overhead   [freefall shoulders -0.42 rad up / 1.05 rad out]
+PASS  the canopy pose still puts the hands up on the risers   [gliding shoulders -2.1 rad up]
+  walking at 5.7 m/s: {"frames":150,"speed":5.7,"cadence":1.2,"mPerCycle":4.75,"stepPerCycle":0.51,"slide":0.89,"noSlideCadence":11.17,"slideAnkle":0.19,"weight":1,"run":0,"kneeMin":0.073,"bob":0.052}
+  sprinting at 8.6 m/s: {"frames":150,"speed":8.5,"cadence":1.6,"mPerCycle":5.31,"stepPerCycle":0.64,"slide":0.88,"noSlideCadence":13.22,"slideAnkle":0.28,"weight":1,"run":1,"kneeMin":0.125,"bob":0.071}
+  walking at 3.0 m/s: {"frames":150,"speed":3.09,"cadence":0.8,"mPerCycle":3.86,"stepPerCycle":0.52,"slide":0.87,"noSlideCadence":5.97,"slideAnkle":0.2,"weight":1,"run":0,"kneeMin":0.153,"bob":0.052}
+  crouch-walking at 2.8 m/s: {"frames":150,"speed":2.9,"cadence":0.8,"mPerCycle":3.62,"stepPerCycle":0.5,"slide":0.86,"noSlideCadence":5.86,"slideAnkle":0.2,"weight":0.97,"run":0,"kneeMin":0.147,"bob":0.05}
+PASS  the baked cycle owns the limbs at walking speed   [clip weight 1, run share 0]
+PASS  the sprint hands over to the run cycle   [run share 1 at 8.5 m/s, cadence 1.2 -> 1.6 cycles/s]
+  the clips step 0.51 m per walk cycle and 0.64 m per run cycle; CONFIG.CHARACTER.anims.stride = 4.2
+  clip table: walk 61 frames, run 42 frames
+PASS  the aiming camera keeps the model out of the sight picture   [camera 1.75 m behind him while aiming (CONFIG.CAM_DIST_ADS = 1.75)]
+PASS  the slide the shipped cadence leaves is the trade, not an accident   [walking 5.7 m/s: 89% of the body speed is skated at 1.2 cycles/s (slide free would need 11.17 cycles/s); sprinting: 88% at 1.6 cycles/s (needs 13.22)]
+PASS  the knee never folds through the thigh   [knee minimum 0.125 rad]
+PASS  the cadence rises with speed and stays inside its clamp   [0.8 / 1.2 / 1.6 cycles/s]
+PASS  the crouch keeps some of the cycle   [crouch clip weight 0.97 vs 1 standing]
+  sweep stride 4.2 / rateMax 1.9 at 8.6 m/s: {"frames":90,"speed":8.5,"cadence":2,"mPerCycle":4.25,"stepPerCycle":0.66,"slide":0.85,"noSlideCadence":12.97,"slideAnkle":0.27,"weight":1,"run":1,"kneeMin":0.106,"bob":0.071}
+  sweep stride 4.2 / rateMax 2.4 at 8.6 m/s: {"frames":90,"speed":8.5,"cadence":2,"mPerCycle":4.25,"stepPerCycle":0.64,"slide":0.85,"noSlideCadence":13.23,"slideAnkle":0.31,"weight":1,"run":1,"kneeMin":0.148,"bob":0.071}
+  sweep stride 3.4 / rateMax 2.4 at 8.6 m/s: {"frames":90,"speed":8.5,"cadence":2,"mPerCycle":4.25,"stepPerCycle":0.64,"slide":0.85,"noSlideCadence":13.25,"slideAnkle":0.37,"weight":1,"run":1,"kneeMin":0.16,"bob":0.071}
+  sweep stride 2.8 / rateMax 2.8 at 8.6 m/s: {"frames":90,"speed":8.5,"cadence":2.67,"mPerCycle":3.19,"stepPerCycle":0.64,"slide":0.8,"noSlideCadence":13.21,"slideAnkle":0.43,"weight":1,"run":1,"kneeMin":0.126,"bob":0.071}
+  cadence sweep (sprint): [{"stride":4.2,"rateMax":1.9,"cadence":2,"slide":0.85,"mPerCycle":4.25},{"stride":4.2,"rateMax":2.4,"cadence":2,"slide":0.85,"mPerCycle":4.25},{"stride":3.4,"rateMax":2.4,"cadence":2,"slide":0.85,"mPerCycle":4.25},{"stride":2.8,"rateMax":2.8,"cadence":2.67,"slide":0.8,"mPerCycle":3.19}]
+PASS  the cadence ceiling keeps the clip near a tempo a player can sprint at   [the shipped stride plays the run cycle at 2 cycles/s at 8.6 m/s (85% slide); pushing the cadence to 2.67 cycles/s only gets the slide to 80%, so what the feet skate is the movement speed, not the tuni]
+  cost per frame: 0.009 ms with the clips, 0.003 ms with the sine cycle, restored: true
+PASS  the clips cost next to nothing per frame   [+0.006 ms]
+PASS  the clips can be taken away and put back
+PASS  the rig is still on the baked cycles after that swap
+  shot 11-live-firefight.png (422 KB)
+  after a live firefight: {"state":"PLAYING","alive":true,"modelVisible":true,"badBones":0,"weight":0,"fps":10,"pos":[-111,14.2,-106.9]}
+PASS  the character survived a live match with every hinge intact   [0 broken hinges, model visible true]
+  shot 12-second-match.png (290 KB)
+  second match: {"state":"PLAYING","rig":true,"clips":true,"detail":"ready","weight":0}
+PASS  a second match still has the rig and the baked cycles   [{"state":"PLAYING","rig":true,"clips":true,"detail":"ready","weight":0}]
+(ignored 4 environment-specific browser message(s))
+
+--- console errors / warnings seen ---
+  (clean)
+
+--- informational logs ---
+  [character] locomotion clips ready: walk 61 frames / 1.02 s, run 42 frames / 0.70 s, 14 hinges each (freddy_anims.js)
+  [character] Freddy Fazbear ready in 159 ms from freddy_fazzbear.glb.js - 6 mesh(es), 3 texture(s), 1.74 m tall
+  [character] rigged 394 rigid pieces onto 14 hinges -> 36 meshes, 18068 triangles
+  [character] the rig is playing the baked walk/run cycles
+
+--- summary ---
+16/16 checks passed; 0 console problem(s)
